@@ -1,0 +1,17 @@
+package io.github.hetaoawa.qqbot;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+/** Attachment metadata delivered with a message. */
+public record QQAttachment(
+        String url,
+        String filename,
+        String contentType,
+        Integer width,
+        Integer height,
+        Long size,
+        String voiceWavUrl,
+        String asrReferText,
+        JsonNode raw
+) {
+}
