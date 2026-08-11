@@ -9,7 +9,7 @@
     <version>0.1.0-SNAPSHOT</version>
     <name>QQ Official Bot Java</name>
     <description>A small Java SDK for QQ Official Bot WebSocket, Webhook and messaging APIs.</description>
-    <url>https://github.com/hetaoawa/qq-official-bot-java</url>
+    <url>https://github.com/hetaoawa/AstraProject</url>
 
     <licenses>
         <license>

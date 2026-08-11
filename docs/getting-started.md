@@ -10,8 +10,8 @@
 ## 本地安装
 
 ```bash
-git clone https://github.com/hetaoawa/qq-official-bot-java.git
-cd qq-official-bot-java
+git clone https://github.com/hetaoawa/AstraProject.git
+cd AstraProject
 mvn clean install
 ```
 
