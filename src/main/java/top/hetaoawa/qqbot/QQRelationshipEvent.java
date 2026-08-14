@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.Set;
 
 /** Normalized friend, group membership and robot relationship event. */
+/** Normalized friend, group-member, or relationship event. */
 public record QQRelationshipEvent(
         String eventId,
         String eventType,

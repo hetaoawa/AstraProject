@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /** Normalized interaction and reaction event. */
+/** Normalized interaction event with a helper for acknowledging it. */
 public record QQInteractionEvent(
         QQBot bot,
         String eventId,
@@ -34,6 +35,7 @@ public record QQInteractionEvent(
                 text(data, "group_openid"), integer(data, "chat_type"), text(data, "scene"), data, event.raw());
     }
 
+    /** Sends an interaction callback response with the supplied callback code. */
     public CompletableFuture<JsonNode> respond(int code) {
         if (interactionId == null || interactionId.isBlank()) {
             return CompletableFuture.failedFuture(new IllegalStateException("event has no interaction id"));

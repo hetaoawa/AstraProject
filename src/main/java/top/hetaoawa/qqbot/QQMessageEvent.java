@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Normalized private/group message event with reply helpers. */
+/** Normalized private or group message event with reply helpers. */
 public final class QQMessageEvent {
     private final QQBot bot;
     private final String eventId;
@@ -71,58 +72,72 @@ public final class QQMessageEvent {
         return new QQMessageEvent(bot, event.id(), event.type(), event.data(), event.raw());
     }
 
+    /** Returns the framework event ID. */
     public String eventId() {
         return eventId;
     }
 
+    /** Returns the original QQ event type. */
     public String eventType() {
         return eventType;
     }
 
+    /** Returns the QQ message ID. */
     public String messageId() {
         return messageId;
     }
 
+    /** Returns the normalized message author. */
     public QQUser author() {
         return author;
     }
 
+    /** Returns the message text, or {@code null} for non-text content. */
     public String content() {
         return content;
     }
 
+    /** Returns the private-message user OpenID, when present. */
     public String userOpenId() {
         return userOpenId;
     }
 
+    /** Returns the group OpenID, when present. */
     public String groupOpenId() {
         return groupOpenId;
     }
 
+    /** Returns the QQ message type code, when present. */
     public Integer messageType() {
         return messageType;
     }
 
+    /** Returns the message timestamp, when it could be parsed. */
     public Instant timestamp() {
         return timestamp;
     }
 
+    /** Returns normalized scene metadata. */
     public QQMessageScene scene() {
         return scene;
     }
 
+    /** Returns the immutable attachment list. */
     public List<QQAttachment> attachments() {
         return attachments;
     }
 
+    /** Returns the original message JSON payload. */
     public JsonNode raw() {
         return raw;
     }
 
+    /** Returns whether this message originated in a group. */
     public boolean isGroupMessage() {
         return groupOpenId != null && !groupOpenId.isBlank();
     }
 
+    /** Sends a text reply to this message. */
     public java.util.concurrent.CompletableFuture<MessageResponse> replyText(String content) {
         return bot.replyText(this, content);
     }

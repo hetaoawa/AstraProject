@@ -19,6 +19,7 @@ import java.util.concurrent.Executors;
  * Minimal JDK HTTP callback server. Put it behind an HTTPS reverse proxy in production;
  * QQ requires the configured callback endpoint to be HTTPS.
  */
+/** Embedded HTTP server for QQ Webhook callbacks and validation. */
 public final class WebhookServer implements AutoCloseable {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
@@ -34,6 +35,7 @@ public final class WebhookServer implements AutoCloseable {
         this.logger = logger;
     }
 
+    /** Starts listening on the configured address and returns this server. */
     public synchronized WebhookServer start() throws IOException {
         if (server != null) {
             return this;
@@ -51,6 +53,7 @@ public final class WebhookServer implements AutoCloseable {
         return this;
     }
 
+    /** Returns whether the embedded HTTP server is currently running. */
     public synchronized boolean isRunning() {
         return server != null;
     }
@@ -191,6 +194,7 @@ public final class WebhookServer implements AutoCloseable {
         exchange.getResponseBody().write(bytes);
     }
 
+    /** Stops the embedded HTTP server if it is running. */
     @Override
     public synchronized void close() {
         if (server != null) {

@@ -1,6 +1,7 @@
 package top.hetaoawa.qqbot;
 
 /** Console logging threshold used by AstraQQBot. */
+/** Threshold for framework console logging. */
 public enum BotLogLevel {
     TRACE,
     DEBUG,

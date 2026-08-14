@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Set;
 
 /** Normalized C2C/group subscription-message delivery status. */
+/** Normalized message delivery or audit-status event. */
 public record QQMessageStatusEvent(
         String eventId,
         String eventType,

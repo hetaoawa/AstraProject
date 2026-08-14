@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Set;
 
 /** Normalized envelope for guild, channel, member, role, forum and audio resource events. */
+/** Normalized resource change event such as a guild, channel, role, or member. */
 public record QQResourceEvent(
         String eventId,
         String eventType,

@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Map;
 
 /** Extensible message request. Unknown official fields can be added through {@link #put}. */
+/** Fluent builder for QQ message request bodies. */
 public final class MessagePayload {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final ObjectNode body;
@@ -16,6 +17,7 @@ public final class MessagePayload {
         this.body = body;
     }
 
+    /** Creates a plain-text message payload. */
     public static MessagePayload text(String content) {
         ObjectNode node = MAPPER.createObjectNode();
         node.put("msg_type", 0);
@@ -23,6 +25,7 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
+    /** Creates a Markdown message payload. */
     public static MessagePayload markdown(String content) {
         ObjectNode node = MAPPER.createObjectNode();
         node.put("msg_type", 2);
@@ -30,6 +33,7 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
+    /** Creates a Markdown custom-template payload with template parameters. */
     public static MessagePayload markdownTemplate(String templateId,
                                                   Map<String, ? extends Collection<String>> parameters) {
         if (templateId == null || templateId.isBlank()) {
@@ -48,6 +52,7 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
+    /** Creates a rich-media payload using a prepared file-info value. */
     public static MessagePayload media(String fileInfo) {
         if (fileInfo == null || fileInfo.isBlank()) {
             throw new IllegalArgumentException("fileInfo must not be blank");
@@ -57,6 +62,7 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
+    /** Creates an Ark template payload. */
     public static MessagePayload ark(int templateId, JsonNode keyValues) {
         if (templateId <= 0) throw new IllegalArgumentException("templateId must be positive");
         if (keyValues == null || !keyValues.isArray()) {
@@ -67,6 +73,7 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
+    /** Creates a payload from an existing JSON object. */
     public static MessagePayload raw(JsonNode body) {
         if (body == null || !body.isObject()) {
             throw new IllegalArgumentException("message body must be a JSON object");
@@ -74,26 +81,31 @@ public final class MessagePayload {
         return new MessagePayload((ObjectNode) body.deepCopy());
     }
 
+    /** Adds or replaces a string field. */
     public MessagePayload put(String field, String value) {
         body.put(field, value);
         return this;
     }
 
+    /** Adds or replaces a numeric field. */
     public MessagePayload put(String field, long value) {
         body.put(field, value);
         return this;
     }
 
+    /** Adds or replaces a boolean field. */
     public MessagePayload put(String field, boolean value) {
         body.put(field, value);
         return this;
     }
 
+    /** Adds or replaces a JSON field. */
     public MessagePayload set(String field, JsonNode value) {
         body.set(field, value);
         return this;
     }
 
+    /** Adds a keyboard template reference. */
     public MessagePayload keyboardTemplate(String keyboardId) {
         if (keyboardId == null || keyboardId.isBlank()) {
             throw new IllegalArgumentException("keyboardId must not be blank");
@@ -102,6 +114,7 @@ public final class MessagePayload {
         return this;
     }
 
+    /** Adds inline keyboard content. */
     public MessagePayload keyboardContent(JsonNode content) {
         if (content == null || !content.isObject()) {
             throw new IllegalArgumentException("content must be a JSON object");
@@ -110,12 +123,14 @@ public final class MessagePayload {
         return this;
     }
 
+    /** Sets the message sequence number used for grouped replies. */
     public MessagePayload messageSequence(int sequence) {
         if (sequence < 1) throw new IllegalArgumentException("sequence must be positive");
         body.put("msg_seq", sequence);
         return this;
     }
 
+    /** Adds the reply fields for a normalized message event. */
     public MessagePayload replyTo(QQMessageEvent event) {
         if (event == null || event.messageId() == null || event.messageId().isBlank()) {
             throw new IllegalArgumentException("event must contain a message id");
@@ -125,6 +140,7 @@ public final class MessagePayload {
         return this;
     }
 
+    /** Adds the reply fields for a raw event envelope. */
     public MessagePayload eventReplyTo(QQEvent event) {
         if (event == null || event.id() == null || event.id().isBlank()) {
             throw new IllegalArgumentException("event must contain an event id");
@@ -137,6 +153,7 @@ public final class MessagePayload {
         return body.deepCopy();
     }
 
+    /** Returns a defensive JSON copy of this payload. */
     public JsonNode toJson() {
         return body.deepCopy();
     }
