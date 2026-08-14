@@ -81,6 +81,7 @@ public class Main {
 - [配置项](docs/configuration.md)
 - [事件与消息模型](docs/events.md)
 - [发送与回复消息](docs/messages.md)
+- [框架支持功能列表](docs/support-matrix.md)
 - [WebSocket 生命周期](docs/websocket.md)
 - [Webhook 部署与安全](docs/webhook.md)
 - [架构与线程模型](docs/architecture.md)
