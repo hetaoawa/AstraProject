@@ -33,6 +33,10 @@ public final class QQBotCluster implements AutoCloseable {
     public QQBotCluster onMessageStatus(Consumer<QQMessageStatusEvent> listener) { bots.forEach(bot -> bot.onMessageStatus(listener)); return this; }
     public QQBotCluster onResource(Consumer<QQResourceEvent> listener) { bots.forEach(bot -> bot.onResource(listener)); return this; }
     public QQBotCluster onError(Consumer<Throwable> listener) { bots.forEach(bot -> bot.onError(listener)); return this; }
+    public QQBotCluster onError(String handlerName, Consumer<Throwable> listener) {
+        bots.forEach(bot -> bot.onError(handlerName, listener));
+        return this;
+    }
 
     public CompletableFuture<Void> startWebSocket() {
         return CompletableFuture.allOf(bots.stream().map(QQBot::startWebSocket).toArray(CompletableFuture[]::new));

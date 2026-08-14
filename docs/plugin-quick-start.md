@@ -162,7 +162,7 @@ public final class Main {
 
         QQBot bot = QQBot.create(config)
                 .onEvent("READY", event -> System.out.println("Bot READY"))
-                .onError(Throwable::printStackTrace);
+                .onError("main-error-handler", Throwable::printStackTrace);
 
         List<BotPlugin> plugins = List.of(
                 new HelloPlugin()

@@ -34,7 +34,7 @@ public final class QQBot implements AutoCloseable {
     private final List<NamedHandler<QQRelationshipEvent>> relationshipListeners = new CopyOnWriteArrayList<>();
     private final List<NamedHandler<QQMessageStatusEvent>> messageStatusListeners = new CopyOnWriteArrayList<>();
     private final List<NamedHandler<QQResourceEvent>> resourceListeners = new CopyOnWriteArrayList<>();
-    private final List<Consumer<Throwable>> errorListeners = new CopyOnWriteArrayList<>();
+    private final List<NamedErrorHandler> errorListeners = new CopyOnWriteArrayList<>();
     private final Map<String, List<NamedHandler<QQEvent>>> typedListeners = new ConcurrentHashMap<>();
     private volatile WebhookServer webhook;
 
@@ -189,8 +189,13 @@ public final class QQBot implements AutoCloseable {
     }
 
     public QQBot onError(Consumer<Throwable> listener) {
-        errorListeners.add(Objects.requireNonNull(listener, "listener"));
-        logger.debug("PLUGIN", "registered error handler=" + autoName(listener));
+        return onError(autoName(listener), listener);
+    }
+
+    public QQBot onError(String handlerName, Consumer<Throwable> listener) {
+        errorListeners.add(new NamedErrorHandler(requireHandlerName(handlerName),
+                Objects.requireNonNull(listener, "listener")));
+        logger.debug("PLUGIN", "registered error handler=" + handlerName);
         return this;
     }
 
@@ -311,11 +316,11 @@ public final class QQBot implements AutoCloseable {
         Throwable actual = error == null ? new RuntimeException("Unknown QQ Bot error") : error;
         logger.error(component, "reported error=" + actual.getClass().getSimpleName()
                 + " message=" + actual.getMessage(), actual);
-        for (Consumer<Throwable> listener : errorListeners) {
+        for (NamedErrorHandler listener : errorListeners) {
             try {
-                listener.accept(actual);
+                listener.action().accept(actual);
             } catch (Throwable listenerError) {
-                logger.error("PLUGIN", "error handler failed name=" + autoName(listener), listenerError);
+                logger.error("PLUGIN", "error handler failed name=" + listener.name(), listenerError);
             }
         }
     }
@@ -429,6 +434,9 @@ public final class QQBot implements AutoCloseable {
     }
 
     private record NamedHandler<T>(String name, Function<T, ? extends CompletionStage<?>> action) {
+    }
+
+    private record NamedErrorHandler(String name, Consumer<Throwable> action) {
     }
 
     @Override

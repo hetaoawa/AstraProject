@@ -101,8 +101,10 @@ bot.onEventAsync("GROUP_JOIN_REQUEST", "approval-plugin", event -> approvalServi
 日志不能替代业务错误处理。仍应注册：
 
 ```java
-bot.onError(error -> monitoringService.report(error));
+bot.onError("monitoring", error -> monitoringService.report(error));
 ```
+
+错误监听器也支持显式命名。未指定名称的旧写法仍然兼容，但日志中的监听器名称会是 Java Lambda 的运行时类名。
 
 插件异步任务应把 Future 返回给 `onMessageAsync`/`onEventAsync`。如果插件自行启动任务又不返回 Future，框架无法记录任务的最终完成状态。
 

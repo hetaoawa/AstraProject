@@ -71,7 +71,7 @@ public class Main {
                             error.printStackTrace();
                             return null;
                         }))
-                .onError(Throwable::printStackTrace);
+                .onError("main-error-handler", Throwable::printStackTrace);
 
         Runtime.getRuntime().addShutdownHook(new Thread(bot::close));
         bot.startWebSocket().join();
