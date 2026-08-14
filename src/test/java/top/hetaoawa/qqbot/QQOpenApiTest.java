@@ -50,6 +50,7 @@ class QQOpenApiTest {
                 .appId("app").clientSecret("secret")
                 .apiBaseUri(baseUrl + "/")
                 .accessTokenUri(baseUrl + "/token")
+                .logLevel(BotLogLevel.OFF)
                 .build())) {
             bot.api().updateGroupRestrictChatSetting("group id",
                     com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode()

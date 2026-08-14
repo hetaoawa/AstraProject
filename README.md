@@ -17,6 +17,7 @@
 - 支持机器人菜单/面板、群聊审批与禁言，以及 Guild/Channel/成员/角色/权限管理。
 - 标准化互动、好友/群关系、消息状态和资源变更事件。
 - `QQBotCluster` 自动创建并管理多分片 Gateway 实例。
+- 分级控制台日志记录传输生命周期、事件路由、插件捕获/完成和处理耗时。
 - 原始事件、指定事件类型、标准化消息三种监听方式。
 - 保留原始 JSON，便于兼容官方新增字段。
 
@@ -89,6 +90,7 @@ public class Main {
 - [发送与回复消息](docs/messages.md)
 - [框架支持功能列表](docs/support-matrix.md)
 - [扩展 OpenAPI 与管理能力](docs/open-api.md)
+- [日志与调试](docs/logging.md)
 - [WebSocket 生命周期](docs/websocket.md)
 - [Webhook 部署与安全](docs/webhook.md)
 - [架构与线程模型](docs/architecture.md)

@@ -11,7 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class QQExtendedEventTest {
     @Test
     void dispatchesNormalizedInteractionRelationshipStatusAndResourceEvents() {
-        QQBot bot = QQBot.create(BotConfig.builder().appId("app").clientSecret("secret").build());
+        QQBot bot = QQBot.create(BotConfig.builder().appId("app").clientSecret("secret")
+                .logLevel(BotLogLevel.OFF).build());
         AtomicReference<QQInteractionEvent> interaction = new AtomicReference<>();
         AtomicReference<QQRelationshipEvent> relationship = new AtomicReference<>();
         AtomicReference<QQMessageStatusEvent> status = new AtomicReference<>();
@@ -47,7 +48,8 @@ class QQExtendedEventTest {
 
     @Test
     void createsOneBotPerShard() {
-        BotConfig base = BotConfig.builder().appId("app").clientSecret("secret").build();
+        BotConfig base = BotConfig.builder().appId("app").clientSecret("secret")
+                .logLevel(BotLogLevel.OFF).build();
         try (QQBotCluster cluster = QQBotCluster.create(base, 3)) {
             assertEquals(3, cluster.bots().size());
             assertEquals(0, cluster.bots().get(0).config().shardId());

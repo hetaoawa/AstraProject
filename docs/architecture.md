@@ -42,6 +42,12 @@ bot.onMessage(message -> businessPool.submit(() -> {
 
 应用关闭时也应关闭自己的线程池。
 
+## 日志边界
+
+每个 `QQBot` 持有独立的日志级别配置。传输层记录 Gateway、Webhook 和 OpenAPI 生命周期，事件分发层记录命名监听器的捕获、完成、失败和耗时。异步监听器只有在返回的 `CompletionStage` 完成后才会记录处理完成。
+
+默认不记录事件原始载荷，也不会记录 AppSecret、Access Token、Authorization 请求头或 Webhook 签名。详见 [日志与调试](logging.md)。
+
 ## 向前兼容
 
 框架只对常用消息字段做强类型映射，始终保留 `JsonNode raw`。官方增加字段时，应用可以先从原始 JSON 读取，不必等待框架发布新模型。

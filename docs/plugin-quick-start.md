@@ -112,6 +112,8 @@ package com.example.mybot;
 
 import top.hetaoawa.qqbot.QQBot;
 
+import java.util.concurrent.CompletableFuture;
+
 public final class HelloPlugin implements BotPlugin {
     @Override
     public String name() {
@@ -120,17 +122,13 @@ public final class HelloPlugin implements BotPlugin {
 
     @Override
     public void register(QQBot bot) {
-        bot.onMessage(message -> {
+        bot.onMessageAsync(name(), message -> {
             String content = message.content();
             if (content == null || !content.trim().equalsIgnoreCase("/hello")) {
-                return;
+                return CompletableFuture.completedFuture(null);
             }
 
-            message.replyText("你好，我的第一个 AstraQQBot 插件已运行！")
-                    .exceptionally(error -> {
-                        error.printStackTrace();
-                        return null;
-                    });
+            return message.replyText("你好，我的第一个 AstraQQBot 插件已运行！");
         });
     }
 }
@@ -146,6 +144,7 @@ public final class HelloPlugin implements BotPlugin {
 package com.example.mybot;
 
 import top.hetaoawa.qqbot.BotConfig;
+import top.hetaoawa.qqbot.BotLogLevel;
 import top.hetaoawa.qqbot.Intents;
 import top.hetaoawa.qqbot.QQBot;
 
@@ -158,6 +157,7 @@ public final class Main {
                 .appId(requiredEnv("QQ_BOT_APP_ID"))
                 .clientSecret(requiredEnv("QQ_BOT_CLIENT_SECRET"))
                 .intents(Intents.GROUP_AND_C2C_EVENT)
+                .logLevel(BotLogLevel.DEBUG)
                 .build();
 
         QQBot bot = QQBot.create(config)
@@ -199,6 +199,8 @@ public final class Main {
 ```
 
 `startWebSocket().join()` 只等待 Gateway 返回 `READY`，随后就会结束等待。因此示例使用 `CountDownLatch` 保持进程运行。
+
+示例启用了 DEBUG 日志。因为插件使用 `onMessageAsync(name(), ...)` 注册，控制台会显示事件被 `hello` 捕获，以及回复 Future 真正完成或失败的时间。
 
 ## 6. 配置凭证并运行
 
@@ -284,6 +286,7 @@ plugins/
 4. 所有 `CompletableFuture` 都要处理异常，不要静默丢弃发送失败。
 5. QQ 事件可能重复投递；涉及签到、积分、审批等写操作时，以消息 ID 或事件 ID 做幂等。
 6. 不要在监听器线程中执行慢查询、文件处理或外部网络调用，应转交业务线程池。
+7. 使用带名称的监听器注册方法；需要跟踪异步完成时使用 `onMessageAsync` 或 `onEventAsync`。
 
 ## 9. 选择正确的 Intents
 
@@ -337,6 +340,7 @@ mvn package
 ## 下一步
 
 - [配置项](configuration.md)
+- [日志与调试](logging.md)
 - [事件与消息模型](events.md)
 - [发送与回复消息](messages.md)
 - [扩展 OpenAPI 与管理能力](open-api.md)

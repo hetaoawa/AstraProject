@@ -21,7 +21,8 @@ class QQMessageEventTest {
                 }
                 """);
         var envelope = new QQEvent("event-1", 0, 3L, "GROUP_AT_MESSAGE_CREATE", raw, raw);
-        var bot = QQBot.create(BotConfig.builder().appId("app").clientSecret("secret").build());
+        var bot = QQBot.create(BotConfig.builder().appId("app").clientSecret("secret")
+                .logLevel(BotLogLevel.OFF).build());
         var message = QQMessageEvent.from(bot, envelope);
         assertEquals("group-openid", message.groupOpenId());
         assertEquals("member-openid", message.author().memberOpenId());

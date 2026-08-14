@@ -21,7 +21,8 @@ class MessagePayloadTest {
         data.put("id", "message-1");
         data.putObject("author").put("user_openid", "user-1");
         var event = new QQEvent("event-1", 0, 1L, "C2C_MESSAGE_CREATE", data, data);
-        var bot = QQBot.create(BotConfig.builder().appId("app").clientSecret("secret").build());
+        var bot = QQBot.create(BotConfig.builder().appId("app").clientSecret("secret")
+                .logLevel(BotLogLevel.OFF).build());
         var message = QQMessageEvent.from(bot, event);
         var json = MessagePayload.text("reply").replyTo(message).toJson();
         assertEquals("message-1", json.path("msg_id").asText());

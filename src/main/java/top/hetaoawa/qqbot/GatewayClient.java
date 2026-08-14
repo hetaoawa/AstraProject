@@ -16,17 +16,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 final class GatewayClient implements AutoCloseable {
-    private static final Logger LOG = Logger.getLogger(GatewayClient.class.getName());
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final QQBot bot;
     private final BotConfig config;
     private final HttpApiClient api;
     private final HttpClient httpClient;
+    private final AstraLogger logger;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "qqbot-gateway-scheduler");
         thread.setDaemon(true);
@@ -44,11 +42,13 @@ final class GatewayClient implements AutoCloseable {
     private volatile ScheduledFuture<?> heartbeatTask;
     private CompletableFuture<Void> readyFuture = new CompletableFuture<>();
 
-    GatewayClient(QQBot bot, BotConfig config, HttpApiClient api, HttpClient httpClient) {
+    GatewayClient(QQBot bot, BotConfig config, HttpApiClient api, HttpClient httpClient,
+                  AstraLogger logger) {
         this.bot = bot;
         this.config = config;
         this.api = api;
         this.httpClient = httpClient;
+        this.logger = logger;
         this.reconnectDelayMillis = config.reconnectInitialDelay().toMillis();
     }
 
@@ -58,6 +58,7 @@ final class GatewayClient implements AutoCloseable {
                 throw new IllegalStateException("gateway client is closed");
             }
             if (!readyFuture.isDone()) {
+                logger.info("GATEWAY", "starting shard=" + config.shardId() + "/" + config.shardCount());
                 connectAttempt();
             }
             return readyFuture;
@@ -70,6 +71,7 @@ final class GatewayClient implements AutoCloseable {
         }
         CompletableFuture.runAsync(() -> {
             try {
+                logger.debug("GATEWAY", "requesting gateway URL");
                 JsonNode gateway = api.get("/gateway/bot");
                 String url = gateway.path("url").asText();
                 if (url.isBlank()) {
@@ -81,6 +83,8 @@ final class GatewayClient implements AutoCloseable {
                         .join();
                 webSocket = socket;
                 reconnectDelayMillis = config.reconnectInitialDelay().toMillis();
+                logger.info("GATEWAY", "websocket connected shard=" + config.shardId()
+                        + "/" + config.shardCount());
             } catch (Throwable error) {
                 connecting.set(false);
                 report(error);
@@ -110,7 +114,7 @@ final class GatewayClient implements AutoCloseable {
                 }
                 case 10 -> hello(raw.path("d").path("heartbeat_interval").asLong(45000));
                 case 11 -> { /* Heartbeat ACK. */ }
-                default -> LOG.fine(() -> "Unhandled QQ Bot gateway opcode: " + op);
+                default -> logger.debug("GATEWAY", "unhandled opcode=" + op);
             }
         } catch (Exception error) {
             report(error);
@@ -126,14 +130,18 @@ final class GatewayClient implements AutoCloseable {
         String type = raw.path("t").asText(null);
         Long seq = raw.has("s") && !raw.get("s").isNull() ? raw.get("s").asLong() : null;
         QQEvent event = new QQEvent(raw.path("id").asText(null), op, seq, type, raw.path("d"), raw);
+        logger.debug("GATEWAY", "dispatch received type=" + type + " id=" + event.id() + " sequence=" + seq);
         if ("READY".equals(type)) {
             sessionId = raw.path("d").path("session_id").asText(null);
             readyFuture.complete(null);
+            logger.info("GATEWAY", "ready shard=" + config.shardId() + "/" + config.shardCount());
         }
         bot.dispatch(event);
     }
 
     private void hello(long heartbeatIntervalMillis) {
+        logger.debug("GATEWAY", "hello heartbeatIntervalMs=" + heartbeatIntervalMillis
+                + " resumable=" + (sessionId != null && !sessionId.isBlank()));
         scheduleHeartbeat(Math.max(1000, heartbeatIntervalMillis));
         if (sessionId != null && !sessionId.isBlank()) {
             sendResume();
@@ -159,9 +167,12 @@ final class GatewayClient implements AutoCloseable {
             payload.put("d", sequence);
         }
         send(payload);
+        logger.trace("GATEWAY", "heartbeat sent sequence=" + sequence);
     }
 
     private void sendIdentify() {
+        logger.debug("GATEWAY", "sending identify shard=" + config.shardId() + "/" + config.shardCount()
+                + " intents=" + config.intents());
         ObjectNode data = MAPPER.createObjectNode()
                 .put("token", "QQBot " + bot.accessToken())
                 .put("intents", config.intents());
@@ -175,6 +186,7 @@ final class GatewayClient implements AutoCloseable {
     }
 
     private void sendResume() {
+        logger.debug("GATEWAY", "sending resume sequence=" + sequence);
         ObjectNode data = MAPPER.createObjectNode()
                 .put("token", "QQBot " + bot.accessToken())
                 .put("session_id", sessionId);
@@ -216,6 +228,7 @@ final class GatewayClient implements AutoCloseable {
             return;
         }
         long delay = reconnectDelayMillis;
+        logger.warn("GATEWAY", "reconnect scheduled delayMs=" + delay);
         reconnectDelayMillis = Math.min(config.reconnectMaxDelay().toMillis(), Math.max(1000, delay * 2));
         scheduler.schedule(() -> {
             reconnectScheduled.set(false);
@@ -231,7 +244,7 @@ final class GatewayClient implements AutoCloseable {
             task.cancel(false);
         }
         if (!stopped) {
-            LOG.warning(() -> "QQ Bot gateway closed: " + statusCode + " " + reason);
+            logger.warn("GATEWAY", "closed status=" + statusCode + " reason=" + reason);
             scheduleReconnect();
         }
     }
@@ -239,13 +252,13 @@ final class GatewayClient implements AutoCloseable {
     private void report(Throwable error) {
         Throwable cause = error instanceof java.util.concurrent.CompletionException && error.getCause() != null
                 ? error.getCause() : error;
-        LOG.log(Level.WARNING, "QQ Bot gateway error", cause);
-        bot.reportError(cause);
+        bot.reportError("GATEWAY", cause);
     }
 
     @Override
     public void close() {
         stopped = true;
+        logger.info("GATEWAY", "stopping shard=" + config.shardId() + "/" + config.shardCount());
         ScheduledFuture<?> task = heartbeatTask;
         if (task != null) {
             task.cancel(false);

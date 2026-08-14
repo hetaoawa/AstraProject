@@ -20,6 +20,8 @@ public final class BotConfig {
     private final int webhookPort;
     private final String webhookPath;
     private final String userAgent;
+    private final BotLogLevel logLevel;
+    private final boolean logEventPayloads;
 
     private BotConfig(Builder builder) {
         this.appId = requireText(builder.appId, "appId");
@@ -36,6 +38,8 @@ public final class BotConfig {
         this.webhookPort = builder.webhookPort;
         this.webhookPath = normalizePath(builder.webhookPath);
         this.userAgent = requireText(builder.userAgent, "userAgent");
+        this.logLevel = Objects.requireNonNull(builder.logLevel, "logLevel");
+        this.logEventPayloads = builder.logEventPayloads;
 
         if (shardCount < 1 || shardId < 0 || shardId >= shardCount) {
             throw new IllegalArgumentException("shardId must be in [0, shardCount), shardCount must be positive");
@@ -108,6 +112,14 @@ public final class BotConfig {
         return userAgent;
     }
 
+    public BotLogLevel logLevel() {
+        return logLevel;
+    }
+
+    public boolean logEventPayloads() {
+        return logEventPayloads;
+    }
+
     public Builder toBuilder() {
         return builder()
                 .appId(appId)
@@ -121,7 +133,9 @@ public final class BotConfig {
                 .reconnectMaxDelay(reconnectMaxDelay)
                 .webhookAddress(webhookHost, webhookPort)
                 .webhookPath(webhookPath)
-                .userAgent(userAgent);
+                .userAgent(userAgent)
+                .logLevel(logLevel)
+                .logEventPayloads(logEventPayloads);
     }
 
     private static String requireText(String value, String name) {
@@ -159,6 +173,8 @@ public final class BotConfig {
         private int webhookPort = 8080;
         private String webhookPath = "/qqbot/events";
         private String userAgent = "AstraQQBot/0.1.0";
+        private BotLogLevel logLevel = BotLogLevel.INFO;
+        private boolean logEventPayloads;
 
         public Builder appId(String appId) {
             this.appId = appId;
@@ -227,6 +243,17 @@ public final class BotConfig {
 
         public Builder userAgent(String userAgent) {
             this.userAgent = userAgent;
+            return this;
+        }
+
+        public Builder logLevel(BotLogLevel logLevel) {
+            this.logLevel = logLevel;
+            return this;
+        }
+
+        /** Enables raw event data at TRACE level. Event payloads may contain user content. */
+        public Builder logEventPayloads(boolean logEventPayloads) {
+            this.logEventPayloads = logEventPayloads;
             return this;
         }
 
