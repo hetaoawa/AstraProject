@@ -28,25 +28,17 @@
 
 ### 1. 引入项目
 
-`0.1.0` 暂不发布到 Maven Central，发布代码通过 [GitHub](https://github.com/hetaoawa/AstraProject) 提供。请先下载 `v0.1.0` 标签对应的源码，再安装到本地 Maven 仓库：
-
-```bash
-git clone --branch v0.1.0 https://github.com/hetaoawa/AstraProject.git
-cd AstraProject
-mvn clean install
-```
-
-构建会同时安装 `AstraQQBot-0.1.0.jar`、源码 JAR 和 Javadoc JAR。IDEA 重新加载 Maven 依赖后，输入框架类和方法即可显示中文文档与参数说明；如果没有自动关联，可在 Maven 面板执行 **Download Sources**，或在 External Libraries 中手动关联 `AstraQQBot-0.1.0-sources.jar`。
-
-然后在应用中引入：
+项目发布在 Maven Central。在应用的 `pom.xml` 中引入：
 
 ```xml
 <dependency>
     <groupId>top.hetaoawa</groupId>
-    <artifactId>AstraQQBot</artifactId>
+    <artifactId>astra-qqbot</artifactId>
     <version>0.1.0</version>
 </dependency>
 ```
+
+Maven 会自动下载主 JAR；IDEA 可通过 Maven 工具窗口的 **Download Sources and Documentation** 获取源码与 Javadoc。
 
 ### 2. 配置凭证
 

@@ -7,28 +7,21 @@
 - 已在 QQ 开放平台创建机器人并取得 AppID、AppSecret
 - 使用 Webhook 时，需要一个可被 QQ 平台访问的 HTTPS 地址
 
-## 本地安装
+## 引入依赖
 
-```bash
-git clone https://github.com/hetaoawa/AstraProject.git
-cd AstraProject
-mvn clean install
+AstraQQBot 发布在 Maven Central。在应用的 `pom.xml` 中加入：
+
+```xml
+<dependency>
+    <groupId>top.hetaoawa</groupId>
+    <artifactId>astra-qqbot</artifactId>
+    <version>0.1.0</version>
+</dependency>
 ```
 
-项目会安装为：
+Maven 会自动解析主 JAR 和传递依赖。IDEA 可通过 Maven 工具窗口的 **Download Sources and Documentation** 下载源码与 Javadoc；无需克隆框架仓库或手动安装 JAR。
 
-```text
-top.hetaoawa:AstraQQBot:0.1.0
-```
-
-安装过程还会把以下两个辅助制品写入本地 Maven 仓库：
-
-```text
-AstraQQBot-0.1.0-sources.jar
-AstraQQBot-0.1.0-javadoc.jar
-```
-
-其中 `sources.jar` 用于 IDEA 查看源码和中文 Javadoc，`javadoc.jar` 用于 IDE 的外部文档索引。重新执行 `mvn clean install` 后，在 IDEA Maven 工具窗口点击 Reload Project；如果仍未显示文档，右键依赖选择 **Download Sources**，或删除旧的本地版本后重新安装。
+只有参与框架自身开发时，才需要克隆源码并执行 `mvn clean install`，将当前工作树版本安装到本地 Maven 仓库。
 
 ## 凭证管理
 

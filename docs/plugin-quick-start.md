@@ -12,21 +12,15 @@
 - Maven 3.8 或更高版本；
 - 已在 QQ 开放平台创建机器人；
 - 机器人的 AppID 和 AppSecret；
-- 已把 AstraQQBot 安装到本地 Maven 仓库，或已从制品仓库取得框架依赖。
+- 能够从 Maven Central 下载依赖。
 
-如果拿到的是框架源码，先在框架目录执行：
-
-```bash
-mvn clean install
-```
-
-该命令会安装主 JAR、源码 JAR 和 Javadoc JAR。将框架作为 Maven 依赖重新加载后，在 IDEA 中调用 API 时即可通过悬停查看中文用法、参数和返回值说明。
-
-这会把以下制品安装到本地 Maven 仓库：
+框架的 Maven 坐标为：
 
 ```text
-top.hetaoawa:AstraQQBot:0.1.0
+top.hetaoawa:astra-qqbot:0.1.0
 ```
+
+后续示例直接从 Maven Central 解析该依赖。只有参与框架自身开发或测试未发布修改时，才需要在框架源码目录执行 `mvn clean install`。
 
 ## 2. 创建插件项目
 
@@ -62,7 +56,7 @@ my-astra-bot/
     <dependencies>
         <dependency>
             <groupId>top.hetaoawa</groupId>
-            <artifactId>AstraQQBot</artifactId>
+            <artifactId>astra-qqbot</artifactId>
             <version>0.1.0</version>
         </dependency>
     </dependencies>

@@ -1,6 +1,6 @@
 # 框架支持功能列表
 
-本文档按 QQ 官方 Bot API v2 文档目录核对 AstraQQBot 的实现进度，记录时间为 **2026-08-14**。这里的“官方已开放”指官方开发文档当前列出的服务端接口、事件和消息能力；“框架支持”只统计本项目已经提供的 Java API，不把用户通过 `JsonNode` 自行扩展请求体视为完整封装。
+本文档按 QQ 官方 Bot API v2 文档目录核对 AstraQQBot 的实现进度，记录时间为 **2026-08-15**。这里的“官方已开放”指官方开发文档当前列出的服务端接口、事件和消息能力；“框架支持”只统计本项目已经提供的 Java API，不把用户通过 `JsonNode` 自行扩展请求体视为完整封装。
 
 官方入口：[启动接入](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/getting-started.html)、[API v2 开发文档](https://bot.q.qq.com/wiki/develop/api-v2/)。
 
@@ -14,7 +14,7 @@
 | 原始事件接收 | ✅ 已支持 | `QQEvent` 保留 `op`、`type`、`data`、`raw`，支持全局和按事件类型监听 |
 | C2C/单聊消息 | ✅ 已支持 | 接收 `C2C_MESSAGE_CREATE`，发送文本/Markdown，支持被动回复 |
 | 群聊消息 | ✅ 已支持 | 接收 `GROUP_AT_MESSAGE_CREATE`、`GROUP_MESSAGE_CREATE`，发送文本/Markdown，支持被动回复 |
-| 频道消息与频道私信 | ❌ 本轮明确排除 | 不提供频道消息发送/接收和频道私信端点；频道资源管理不受此限制 |
+| 频道消息与频道私信 | ❌ 当前版本未支持 | 不提供频道消息发送/接收和频道私信端点；频道资源管理不受此限制 |
 | C2C/群聊富媒体、Ark、模板、键盘、流式消息 | ✅ 已支持 | 提供载荷构造器、媒体直传/分片上传流程和 C2C 流式消息 API；Embed 属于频道消息，仍排除 |
 | 消息互动、撤回、Reaction、置顶、公告、日程 | ✅ 已支持 | `QQOpenApi` 提供明确命名的方法；实际权限由平台控制 |
 | 机器人、群聊、Guild/Channel 管理 | ✅ 已支持 | 菜单、面板、群资料/审批/禁言、Guild/Channel、成员、角色和权限 API |
@@ -47,9 +47,9 @@
 
 对应官方参考：[消息收发概述](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/overview.html)、[消息类型](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/format.html)、[发送消息](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/send.html)、[消息事件](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/event.html)。
 
-## 本轮明确排除的官方能力
+## 当前未支持的官方能力
 
-本轮仅保留以下未实现项：
+当前版本保留以下未实现项：
 
 - 频道消息发送与接收；
 - 频道私信创建、发送、接收与撤回；

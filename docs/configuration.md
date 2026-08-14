@@ -24,7 +24,7 @@
 
 ## Intents
 
-`Intents` 提供官方事件位的常量。第一阶段推荐：
+`Intents` 提供官方事件位的常量。只处理 C2C 和群聊消息时推荐：
 
 ```java
 .intents(Intents.GROUP_AND_C2C_EVENT)
