@@ -1,4 +1,4 @@
-package io.github.hetaoawa.qqbot;
+package top.hetaoawa.qqbot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

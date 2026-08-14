@@ -1,4 +1,4 @@
-package io.github.hetaoawa.qqbot;
+package top.hetaoawa.qqbot;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -169,8 +169,8 @@ final class GatewayClient implements AutoCloseable {
         shard.add(config.shardId()).add(config.shardCount());
         data.putObject("properties")
                 .put("$os", System.getProperty("os.name", "unknown"))
-                .put("$browser", "AstraProject")
-                .put("$device", "AstraProject");
+                .put("$browser", "AstraQQBot")
+                .put("$device", "AstraQQBot");
         send(MAPPER.createObjectNode().put("op", 2).set("d", data));
     }
 

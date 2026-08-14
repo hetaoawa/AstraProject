@@ -1,4 +1,4 @@
-package io.github.hetaoawa.qqbot;
+package top.hetaoawa.qqbot;
 
 /** Exception raised when QQ OpenAPI returns a non-success response or an error body. */
 public final class BotApiException extends RuntimeException {
