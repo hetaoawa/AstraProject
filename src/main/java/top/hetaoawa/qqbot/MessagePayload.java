@@ -7,8 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Collection;
 import java.util.Map;
 
-/** Extensible message request. Unknown official fields can be added through {@link #put}. */
-/** Fluent builder for QQ message request bodies. */
+/** QQ 消息请求体的可扩展构建器，官方新增字段可通过 {@link #put} 和 {@link #set} 添加。 */
 public final class MessagePayload {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final ObjectNode body;
@@ -17,7 +16,7 @@ public final class MessagePayload {
         this.body = body;
     }
 
-    /** Creates a plain-text message payload. */
+    /** 创建纯文本消息载荷。 */
     public static MessagePayload text(String content) {
         ObjectNode node = MAPPER.createObjectNode();
         node.put("msg_type", 0);
@@ -25,7 +24,7 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
-    /** Creates a Markdown message payload. */
+    /** 创建 Markdown 消息载荷。 */
     public static MessagePayload markdown(String content) {
         ObjectNode node = MAPPER.createObjectNode();
         node.put("msg_type", 2);
@@ -33,7 +32,7 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
-    /** Creates a Markdown custom-template payload with template parameters. */
+    /** 使用模板 ID 和参数创建 Markdown 自定义模板载荷。 */
     public static MessagePayload markdownTemplate(String templateId,
                                                   Map<String, ? extends Collection<String>> parameters) {
         if (templateId == null || templateId.isBlank()) {
@@ -52,7 +51,7 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
-    /** Creates a rich-media payload using a prepared file-info value. */
+    /** 使用已准备的 file_info 创建富媒体载荷。 */
     public static MessagePayload media(String fileInfo) {
         if (fileInfo == null || fileInfo.isBlank()) {
             throw new IllegalArgumentException("fileInfo must not be blank");
@@ -62,7 +61,7 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
-    /** Creates an Ark template payload. */
+    /** 创建 Ark 模板载荷。 */
     public static MessagePayload ark(int templateId, JsonNode keyValues) {
         if (templateId <= 0) throw new IllegalArgumentException("templateId must be positive");
         if (keyValues == null || !keyValues.isArray()) {
@@ -73,7 +72,7 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
-    /** Creates a payload from an existing JSON object. */
+    /** 从已有 JSON 对象创建消息载荷。 */
     public static MessagePayload raw(JsonNode body) {
         if (body == null || !body.isObject()) {
             throw new IllegalArgumentException("message body must be a JSON object");
@@ -81,31 +80,31 @@ public final class MessagePayload {
         return new MessagePayload((ObjectNode) body.deepCopy());
     }
 
-    /** Adds or replaces a string field. */
+    /** 添加或替换字符串字段。 */
     public MessagePayload put(String field, String value) {
         body.put(field, value);
         return this;
     }
 
-    /** Adds or replaces a numeric field. */
+    /** 添加或替换数字字段。 */
     public MessagePayload put(String field, long value) {
         body.put(field, value);
         return this;
     }
 
-    /** Adds or replaces a boolean field. */
+    /** 添加或替换布尔字段。 */
     public MessagePayload put(String field, boolean value) {
         body.put(field, value);
         return this;
     }
 
-    /** Adds or replaces a JSON field. */
+    /** 添加或替换 JSON 字段。 */
     public MessagePayload set(String field, JsonNode value) {
         body.set(field, value);
         return this;
     }
 
-    /** Adds a keyboard template reference. */
+    /** 添加键盘模板引用。 */
     public MessagePayload keyboardTemplate(String keyboardId) {
         if (keyboardId == null || keyboardId.isBlank()) {
             throw new IllegalArgumentException("keyboardId must not be blank");
@@ -114,7 +113,7 @@ public final class MessagePayload {
         return this;
     }
 
-    /** Adds inline keyboard content. */
+    /** 添加内联键盘内容。 */
     public MessagePayload keyboardContent(JsonNode content) {
         if (content == null || !content.isObject()) {
             throw new IllegalArgumentException("content must be a JSON object");
@@ -123,14 +122,14 @@ public final class MessagePayload {
         return this;
     }
 
-    /** Sets the message sequence number used for grouped replies. */
+    /** 设置组合回复使用的消息序号。 */
     public MessagePayload messageSequence(int sequence) {
         if (sequence < 1) throw new IllegalArgumentException("sequence must be positive");
         body.put("msg_seq", sequence);
         return this;
     }
 
-    /** Adds the reply fields for a normalized message event. */
+    /** 根据标准化消息事件添加回复字段。 */
     public MessagePayload replyTo(QQMessageEvent event) {
         if (event == null || event.messageId() == null || event.messageId().isBlank()) {
             throw new IllegalArgumentException("event must contain a message id");
@@ -140,7 +139,7 @@ public final class MessagePayload {
         return this;
     }
 
-    /** Adds the reply fields for a raw event envelope. */
+    /** 根据原始事件封装添加回复字段。 */
     public MessagePayload eventReplyTo(QQEvent event) {
         if (event == null || event.id() == null || event.id().isBlank()) {
             throw new IllegalArgumentException("event must contain an event id");
@@ -153,7 +152,7 @@ public final class MessagePayload {
         return body.deepCopy();
     }
 
-    /** Returns a defensive JSON copy of this payload. */
+    /** 返回该载荷的防御性 JSON 副本。 */
     public JsonNode toJson() {
         return body.deepCopy();
     }

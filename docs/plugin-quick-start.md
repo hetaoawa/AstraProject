@@ -20,6 +20,8 @@
 mvn clean install
 ```
 
+该命令会安装主 JAR、源码 JAR 和 Javadoc JAR。将框架作为 Maven 依赖重新加载后，在 IDEA 中调用 API 时即可通过悬停查看中文用法、参数和返回值说明。
+
 这会把以下制品安装到本地 Maven 仓库：
 
 ```text

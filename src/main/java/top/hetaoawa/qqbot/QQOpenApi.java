@@ -12,8 +12,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Named wrappers for QQ Bot OpenAPI endpoints other than channel message delivery and direct messages.
- * Request bodies are JSON because a number of management schemas are extended by QQ without a new endpoint.
+ * QQ Bot OpenAPI 的类型化封装，不包含频道消息收发和频道私信。
+ * 请求体使用 {@link JsonNode}，便于兼容官方新增字段和扩展管理接口。
  */
 public final class QQOpenApi {
     private final HttpApiClient api;
@@ -24,70 +24,70 @@ public final class QQOpenApi {
         this.appId = appId;
     }
 
-    /** Sends a raw authenticated OpenAPI request. */
+    /** 发送原始鉴权 OpenAPI 请求；返回值为 QQ 返回的 JSON。 */
     public CompletableFuture<JsonNode> request(String method, String path, JsonNode body) {
         requireText(method, "method");
         requireText(path, "path");
         return api.requestAsync(method.toUpperCase(java.util.Locale.ROOT), path, body);
     }
 
-    /** Returns the current bot identity. */
+    /** 获取当前机器人资料。 */
     public CompletableFuture<JsonNode> getCurrentUser() {
         return get("/users/@me");
     }
 
-    /** Lists guilds visible to the bot with optional pagination. */
+    /** 分页获取机器人可见的 Guild 列表。 */
     public CompletableFuture<JsonNode> listGuilds(String before, String after, Integer limit) {
         return get(query("/users/@me/guilds", params("before", before, "after", after, "limit", limit)));
     }
 
-    /** Returns guild details. */
+    /** 获取 Guild 详情。 */
     public CompletableFuture<JsonNode> getGuild(String guildId) {
         return get("/guilds/" + id(guildId, "guildId"));
     }
 
-    /** Lists channels in a guild. */
+    /** 获取 Guild 下的频道列表。 */
     public CompletableFuture<JsonNode> listGuildChannels(String guildId) {
         return get("/guilds/" + id(guildId, "guildId") + "/channels");
     }
 
-    /** Creates a channel in a guild. */
+    /** 在 Guild 中创建频道。 */
     public CompletableFuture<JsonNode> createGuildChannel(String guildId, JsonNode channel) {
         return post("/guilds/" + id(guildId, "guildId") + "/channels", object(channel, "channel"));
     }
 
-    /** Returns channel details. */
+    /** 获取频道详情。 */
     public CompletableFuture<JsonNode> getChannel(String channelId) {
         return get("/channels/" + id(channelId, "channelId"));
     }
 
-    /** Updates channel fields. */
+    /** 更新频道字段。 */
     public CompletableFuture<JsonNode> updateChannel(String channelId, JsonNode patch) {
         return patch("/channels/" + id(channelId, "channelId"), object(patch, "patch"));
     }
 
-    /** Deletes a channel. */
+    /** 删除频道。 */
     public CompletableFuture<JsonNode> deleteChannel(String channelId) {
         return delete("/channels/" + id(channelId, "channelId"));
     }
 
-    /** Lists members in a guild with optional pagination. */
+    /** 分页获取 Guild 成员列表。 */
     public CompletableFuture<JsonNode> listGuildMembers(String guildId, String after, Integer limit) {
         String path = "/guilds/" + id(guildId, "guildId") + "/members";
         return get(query(path, params("after", after, "limit", limit)));
     }
 
-    /** Returns one guild member. */
+    /** 获取单个 Guild 成员。 */
     public CompletableFuture<JsonNode> getGuildMember(String guildId, String userId) {
         return get(guildMemberPath(guildId, userId));
     }
 
-    /** Removes a guild member using the default history-delete setting. */
+    /** 移除 Guild 成员，使用默认的历史消息删除设置。 */
     public CompletableFuture<JsonNode> removeGuildMember(String guildId, String userId, boolean addBlacklist) {
         return removeGuildMember(guildId, userId, addBlacklist, 0);
     }
 
-    /** Removes a guild member with blacklist and message-history options. */
+    /** 按黑名单和历史消息选项移除 Guild 成员。 */
     public CompletableFuture<JsonNode> removeGuildMember(String guildId, String userId,
                                                           boolean addBlacklist, int deleteHistoryMessageDays) {
         JsonNode body = JsonNodeFactory.instance.objectNode()
@@ -96,97 +96,97 @@ public final class QQOpenApi {
         return request("DELETE", guildMemberPath(guildId, userId), body);
     }
 
-    /** Updates a member's mute settings. */
+    /** 更新成员禁言设置。 */
     public CompletableFuture<JsonNode> muteGuildMember(String guildId, String userId, JsonNode mute) {
         return patch(guildMemberPath(guildId, userId) + "/mute", object(mute, "mute"));
     }
 
-    /** Updates a guild-wide mute setting. */
+    /** 更新 Guild 级禁言设置。 */
     public CompletableFuture<JsonNode> muteGuild(String guildId, JsonNode mute) {
         return patch("/guilds/" + id(guildId, "guildId") + "/mute", object(mute, "mute"));
     }
 
-    /** Lists roles in a guild. */
+    /** 获取 Guild 角色列表。 */
     public CompletableFuture<JsonNode> listGuildRoles(String guildId) {
         return get(guildRolesPath(guildId));
     }
 
-    /** Creates a guild role. */
+    /** 创建 Guild 角色。 */
     public CompletableFuture<JsonNode> createGuildRole(String guildId, JsonNode role) {
         return post(guildRolesPath(guildId), object(role, "role"));
     }
 
-    /** Updates a guild role. */
+    /** 更新 Guild 角色。 */
     public CompletableFuture<JsonNode> updateGuildRole(String guildId, String roleId, JsonNode role) {
         return patch(guildRolesPath(guildId) + "/" + id(roleId, "roleId"), object(role, "role"));
     }
 
-    /** Deletes a guild role. */
+    /** 删除 Guild 角色。 */
     public CompletableFuture<JsonNode> deleteGuildRole(String guildId, String roleId) {
         return delete(guildRolesPath(guildId) + "/" + id(roleId, "roleId"));
     }
 
-    /** Lists members assigned to a guild role. */
+    /** 获取分配了指定 Guild 角色的成员。 */
     public CompletableFuture<JsonNode> listGuildRoleMembers(String guildId, String roleId,
                                                              String startIndex, Integer limit) {
         String path = guildRolesPath(guildId) + "/" + id(roleId, "roleId") + "/members";
         return get(query(path, params("start_index", startIndex, "limit", limit)));
     }
 
-    /** Assigns a role to a guild member. */
+    /** 为 Guild 成员分配角色。 */
     public CompletableFuture<JsonNode> addGuildMemberRole(String guildId, String userId,
                                                            String roleId, String channelId) {
         String path = guildMemberPath(guildId, userId) + "/roles/" + id(roleId, "roleId");
         return request("PUT", path, optionalChannel(channelId));
     }
 
-    /** Removes a role from a guild member. */
+    /** 移除 Guild 成员的角色。 */
     public CompletableFuture<JsonNode> removeGuildMemberRole(String guildId, String userId,
                                                               String roleId, String channelId) {
         String path = guildMemberPath(guildId, userId) + "/roles/" + id(roleId, "roleId");
         return request("DELETE", path, optionalChannel(channelId));
     }
 
-    /** Returns the guild's API permission state. */
+    /** 获取 Guild API 权限状态。 */
     public CompletableFuture<JsonNode> getGuildApiPermissions(String guildId) {
         return get("/guilds/" + id(guildId, "guildId") + "/api_permission");
     }
 
-    /** Submits a guild API permission demand. */
+    /** 提交 Guild API 权限申请。 */
     public CompletableFuture<JsonNode> demandGuildApiPermission(String guildId, JsonNode demand) {
         return post("/guilds/" + id(guildId, "guildId") + "/api_permission/demand", object(demand, "demand"));
     }
 
-    /** Returns a member's channel permissions. */
+    /** 获取成员的频道权限。 */
     public CompletableFuture<JsonNode> getMemberChannelPermissions(String channelId, String userId) {
         return get(channelPermissionPath(channelId, "members", userId));
     }
 
-    /** Updates a member's channel permissions. */
+    /** 更新成员的频道权限。 */
     public CompletableFuture<JsonNode> updateMemberChannelPermissions(String channelId, String userId,
                                                                        JsonNode permissions) {
         return put(channelPermissionPath(channelId, "members", userId), object(permissions, "permissions"));
     }
 
-    /** Returns a role's channel permissions. */
+    /** 获取角色的频道权限。 */
     public CompletableFuture<JsonNode> getRoleChannelPermissions(String channelId, String roleId) {
         return get(channelPermissionPath(channelId, "roles", roleId));
     }
 
-    /** Updates a role's channel permissions. */
+    /** 更新角色的频道权限。 */
     public CompletableFuture<JsonNode> updateRoleChannelPermissions(String channelId, String roleId,
                                                                      JsonNode permissions) {
         return put(channelPermissionPath(channelId, "roles", roleId), object(permissions, "permissions"));
     }
 
-    /** Sends an interaction callback response. */
+    /** 发送互动回调响应。 */
     public CompletableFuture<JsonNode> respondInteraction(String interactionId, int code) {
         String path = "/interactions/" + id(interactionId, "interactionId");
         return api.requestAsync("PUT", path, JsonNodeFactory.instance.objectNode().put("code", code),
                 Map.of("X-Callback-AppID", appId));
     }
 
-    /** Lists reactions on a channel message. */
+    /** 获取频道消息的 Reaction 列表。 */
     public CompletableFuture<JsonNode> listReactions(String channelId, String messageId,
                                                       int emojiType, String emojiId,
                                                       String cookie, Integer limit) {
@@ -194,306 +194,306 @@ public final class QQOpenApi {
                 params("cookie", cookie, "limit", limit)));
     }
 
-    /** Adds a reaction to a channel message. */
+    /** 为频道消息添加 Reaction。 */
     public CompletableFuture<JsonNode> addReaction(String channelId, String messageId,
                                                     int emojiType, String emojiId) {
         return request("PUT", reactionPath(channelId, messageId, emojiType, emojiId), null);
     }
 
-    /** Removes a reaction from a channel message. */
+    /** 移除频道消息的 Reaction。 */
     public CompletableFuture<JsonNode> removeReaction(String channelId, String messageId,
                                                        int emojiType, String emojiId) {
         return delete(reactionPath(channelId, messageId, emojiType, emojiId));
     }
 
-    /** Recalls a private message. */
+    /** 撤回私聊消息。 */
     public CompletableFuture<JsonNode> recallPrivateMessage(String userOpenId, String messageId) {
         return delete("/v2/users/" + id(userOpenId, "userOpenId") + "/messages/" + id(messageId, "messageId"));
     }
 
-    /** Recalls a group message. */
+    /** 撤回群聊消息。 */
     public CompletableFuture<JsonNode> recallGroupMessage(String groupOpenId, String messageId) {
         return delete("/v2/groups/" + id(groupOpenId, "groupOpenId") + "/messages/" + id(messageId, "messageId"));
     }
 
-    /** Recalls a channel message. */
+    /** 撤回频道消息。 */
     public CompletableFuture<JsonNode> recallChannelMessage(String channelId, String messageId, boolean hideTip) {
         String path = "/channels/" + id(channelId, "channelId") + "/messages/" + id(messageId, "messageId");
         return delete(query(path, params("hidetip", hideTip)));
     }
 
-    /** Sends or updates a streaming private message. */
+    /** 发送或更新 C2C 流式消息。 */
     public CompletableFuture<JsonNode> streamPrivateMessage(String userOpenId, StreamMessagePayload payload) {
         Objects.requireNonNull(payload, "payload");
         return post("/v2/users/" + id(userOpenId, "userOpenId") + "/stream_messages", payload.toJson());
     }
 
-    /** Uploads media for a private message. */
+    /** 为私聊消息上传媒体。 */
     public CompletableFuture<JsonNode> uploadPrivateMedia(String userOpenId, RichMediaRequest media) {
         Objects.requireNonNull(media, "media");
         return post("/v2/users/" + id(userOpenId, "userOpenId") + "/files", media.toJson());
     }
 
-    /** Uploads media for a group message. */
+    /** 为群聊消息上传媒体。 */
     public CompletableFuture<JsonNode> uploadGroupMedia(String groupOpenId, RichMediaRequest media) {
         Objects.requireNonNull(media, "media");
         return post("/v2/groups/" + id(groupOpenId, "groupOpenId") + "/files", media.toJson());
     }
 
-    /** Prepares a private-message multipart upload. */
+    /** 准备私聊消息分片上传。 */
     public CompletableFuture<JsonNode> preparePrivateMultipartUpload(String userOpenId, JsonNode request) {
         return post("/v2/users/" + id(userOpenId, "userOpenId") + "/upload_prepare", object(request, "request"));
     }
 
-    /** Finishes a private-message multipart upload. */
+    /** 完成私聊消息分片上传。 */
     public CompletableFuture<JsonNode> finishPrivateMultipartUpload(String userOpenId, JsonNode request) {
         return post("/v2/users/" + id(userOpenId, "userOpenId") + "/upload_part_finish", object(request, "request"));
     }
 
-    /** Prepares a group-message multipart upload. */
+    /** 准备群聊消息分片上传。 */
     public CompletableFuture<JsonNode> prepareGroupMultipartUpload(String groupOpenId, JsonNode request) {
         return post("/v2/groups/" + id(groupOpenId, "groupOpenId") + "/upload_prepare", object(request, "request"));
     }
 
-    /** Finishes a group-message multipart upload. */
+    /** 完成群聊消息分片上传。 */
     public CompletableFuture<JsonNode> finishGroupMultipartUpload(String groupOpenId, JsonNode request) {
         return post("/v2/groups/" + id(groupOpenId, "groupOpenId") + "/upload_part_finish", object(request, "request"));
     }
 
-    /** Uploads one binary part to the presigned URL returned by an upload-prepare endpoint. */
+    /** 将一个二进制分片上传到准备接口返回的预签名 URL。 */
     public CompletableFuture<Void> uploadPresignedMediaPart(String presignedUrl, byte[] data) {
         requireText(presignedUrl, "presignedUrl");
         return api.uploadPresignedPartAsync(URI.create(presignedUrl), data);
     }
 
-    /** Generates a URL link using the supplied request body. */
+    /** 根据请求体生成 URL Link。 */
     public CompletableFuture<JsonNode> generateUrlLink(JsonNode request) {
         return post("/v2/generate_url_link", object(request, "request"));
     }
 
-    /** Returns the bot menu configuration. */
+    /** 获取机器人菜单配置。 */
     public CompletableFuture<JsonNode> getMenu() {
         return get("/v2/menu");
     }
 
-    /** Replaces the bot menu configuration. */
+    /** 替换机器人菜单配置。 */
     public CompletableFuture<JsonNode> updateMenu(JsonNode menu) {
         return put("/v2/menu", object(menu, "menu"));
     }
 
-    /** Lists bot panels with optional scope and pagination. */
+    /** 分页获取机器人面板列表。 */
     public CompletableFuture<JsonNode> listPanels(String scope, String cursor, Integer limit) {
         return get(query("/v2/panels", params("scope", scope, "cursor", cursor, "limit", limit)));
     }
 
-    /** Creates a bot panel. */
+    /** 创建机器人面板。 */
     public CompletableFuture<JsonNode> createPanel(JsonNode panel) {
         return post("/v2/panels", object(panel, "panel"));
     }
 
-    /** Returns a bot panel. */
+    /** 获取机器人面板详情。 */
     public CompletableFuture<JsonNode> getPanel(String panelId) {
         return get("/v2/panels/" + id(panelId, "panelId"));
     }
 
-    /** Updates a bot panel. */
+    /** 更新机器人面板。 */
     public CompletableFuture<JsonNode> updatePanel(String panelId, JsonNode panel) {
         return put("/v2/panels/" + id(panelId, "panelId"), object(panel, "panel"));
     }
 
-    /** Deletes a bot panel. */
+    /** 删除机器人面板。 */
     public CompletableFuture<JsonNode> deletePanel(String panelId) {
         return delete("/v2/panels/" + id(panelId, "panelId"));
     }
 
-    /** Sets the target configuration for a bot panel. */
+    /** 设置机器人面板的目标配置。 */
     public CompletableFuture<JsonNode> setPanelTarget(String panelId, JsonNode target) {
         return put("/v2/panels/" + id(panelId, "panelId") + "/target", object(target, "target"));
     }
 
-    /** Returns group details. */
+    /** 获取群组详情。 */
     public CompletableFuture<JsonNode> getGroupInfo(String groupOpenId) {
         return get(groupPath(groupOpenId) + "/info");
     }
 
-    /** Returns the bot's state in a group. */
+    /** 获取机器人在群组中的状态。 */
     public CompletableFuture<JsonNode> getGroupBotState(String groupOpenId) {
         return get(groupPath(groupOpenId) + "/bot_state");
     }
 
-    /** Lists pending group-join requests. */
+    /** 获取待处理的加群申请列表。 */
     public CompletableFuture<JsonNode> listGroupJoinRequests(String groupOpenId) {
         return get(groupPath(groupOpenId) + "/join_request_list");
     }
 
-    /** Approves or rejects a group-join request according to the supplied body. */
+    /** 根据请求体处理加群申请。 */
     public CompletableFuture<JsonNode> approveGroupJoinRequest(String groupOpenId, String memberOpenId,
                                                                JsonNode approval) {
         String path = groupPath(groupOpenId) + "/approval_join_request/" + id(memberOpenId, "memberOpenId");
         return post(path, object(approval, "approval"));
     }
 
-    /** Returns group restricted-chat settings. */
+    /** 获取群聊禁言设置。 */
     public CompletableFuture<JsonNode> getGroupRestrictChatSetting(String groupOpenId) {
         return get(groupPath(groupOpenId) + "/restrict_chat_setting");
     }
 
-    /** Updates group restricted-chat settings. */
+    /** 更新群聊禁言设置。 */
     public CompletableFuture<JsonNode> updateGroupRestrictChatSetting(String groupOpenId, JsonNode setting) {
         return post(groupPath(groupOpenId) + "/restrict_chat_setting", object(setting, "setting"));
     }
 
-    /** Lists group-join approval strategies. */
+    /** 获取加群审核策略列表。 */
     public CompletableFuture<JsonNode> listGroupJoinApprovalStrategies() {
         return get("/v2/groups/join_approval_strategy");
     }
 
-    /** Creates a group-join approval strategy. */
+    /** 创建加群审核策略。 */
     public CompletableFuture<JsonNode> createGroupJoinApprovalStrategy(JsonNode strategy) {
         return post("/v2/groups/join_approval_strategy", object(strategy, "strategy"));
     }
 
-    /** Updates a group-join approval strategy. */
+    /** 更新加群审核策略。 */
     public CompletableFuture<JsonNode> updateGroupJoinApprovalStrategy(String strategyId, JsonNode strategy) {
         return patch(strategyPath(strategyId), object(strategy, "strategy"));
     }
 
-    /** Deletes a group-join approval strategy. */
+    /** 删除加群审核策略。 */
     public CompletableFuture<JsonNode> deleteGroupJoinApprovalStrategy(String strategyId) {
         return delete(strategyPath(strategyId));
     }
 
-    /** Executes a group-join approval strategy. */
+    /** 执行加群审核策略。 */
     public CompletableFuture<JsonNode> executeGroupJoinApprovalStrategy(String strategyId, JsonNode request) {
         return post(strategyPath(strategyId) + "/execute", object(request, "request"));
     }
 
-    /** Adds users to a group-join approval whitelist. */
+    /** 将用户加入加群审核白名单。 */
     public CompletableFuture<JsonNode> addGroupJoinApprovalWhitelistUsers(String strategyId, JsonNode request) {
         return post(strategyPath(strategyId) + "/whitelist_users", object(request, "request"));
     }
 
-    /** Returns guild message settings. */
+    /** 获取 Guild 消息设置。 */
     public CompletableFuture<JsonNode> getMessageSetting(String guildId) {
         return get("/guilds/" + id(guildId, "guildId") + "/message/setting");
     }
 
-    /** Lists pinned messages in a channel. */
+    /** 获取频道置顶消息列表。 */
     public CompletableFuture<JsonNode> getPins(String channelId) {
         return get("/channels/" + id(channelId, "channelId") + "/pins");
     }
 
-    /** Pins a channel message. */
+    /** 置顶频道消息。 */
     public CompletableFuture<JsonNode> pinMessage(String channelId, String messageId) {
         return request("PUT", pinPath(channelId, messageId), null);
     }
 
-    /** Unpins a channel message. */
+    /** 取消置顶频道消息。 */
     public CompletableFuture<JsonNode> unpinMessage(String channelId, String messageId) {
         return delete(pinPath(channelId, messageId));
     }
 
-    /** Creates a guild announcement. */
+    /** 创建 Guild 公告。 */
     public CompletableFuture<JsonNode> createGuildAnnouncement(String guildId, JsonNode announcement) {
         return post("/guilds/" + id(guildId, "guildId") + "/announces", object(announcement, "announcement"));
     }
 
-    /** Deletes a guild announcement. */
+    /** 删除 Guild 公告。 */
     public CompletableFuture<JsonNode> deleteGuildAnnouncement(String guildId, String messageId) {
         return delete("/guilds/" + id(guildId, "guildId") + "/announces/" + id(messageId, "messageId"));
     }
 
-    /** Creates a channel announcement. */
+    /** 创建频道公告。 */
     public CompletableFuture<JsonNode> createChannelAnnouncement(String channelId, JsonNode announcement) {
         return post("/channels/" + id(channelId, "channelId") + "/announces", object(announcement, "announcement"));
     }
 
-    /** Deletes a channel announcement. */
+    /** 删除频道公告。 */
     public CompletableFuture<JsonNode> deleteChannelAnnouncement(String channelId, String messageId) {
         return delete("/channels/" + id(channelId, "channelId") + "/announces/" + id(messageId, "messageId"));
     }
 
-    /** Lists channel schedules. */
+    /** 获取频道日程列表。 */
     public CompletableFuture<JsonNode> listSchedules(String channelId, String since) {
         return get(query(scheduleBase(channelId), params("since", since)));
     }
 
-    /** Creates a channel schedule. */
+    /** 创建频道日程。 */
     public CompletableFuture<JsonNode> createSchedule(String channelId, JsonNode schedule) {
         return post(scheduleBase(channelId), wrapped("schedule", schedule));
     }
 
-    /** Returns a channel schedule. */
+    /** 获取频道日程详情。 */
     public CompletableFuture<JsonNode> getSchedule(String channelId, String scheduleId) {
         return get(schedulePath(channelId, scheduleId));
     }
 
-    /** Updates a channel schedule. */
+    /** 更新频道日程。 */
     public CompletableFuture<JsonNode> updateSchedule(String channelId, String scheduleId, JsonNode schedule) {
         return patch(schedulePath(channelId, scheduleId), wrapped("schedule", schedule));
     }
 
-    /** Deletes a channel schedule. */
+    /** 删除频道日程。 */
     public CompletableFuture<JsonNode> deleteSchedule(String channelId, String scheduleId) {
         return delete(schedulePath(channelId, scheduleId));
     }
 
-    /** Lists threads in a channel. */
+    /** 获取频道主题列表。 */
     public CompletableFuture<JsonNode> listThreads(String channelId) {
         return get(threadBase(channelId));
     }
 
-    /** Returns a channel thread. */
+    /** 获取频道主题详情。 */
     public CompletableFuture<JsonNode> getThread(String channelId, String threadId) {
         return get(threadPath(channelId, threadId));
     }
 
-    /** Creates a channel thread. */
+    /** 创建频道主题。 */
     public CompletableFuture<JsonNode> createThread(String channelId, JsonNode thread) {
         return request("PUT", threadBase(channelId), object(thread, "thread"));
     }
 
-    /** Deletes a channel thread. */
+    /** 删除频道主题。 */
     public CompletableFuture<JsonNode> deleteThread(String channelId, String threadId) {
         return delete(threadPath(channelId, threadId));
     }
 
-    /** Applies an audio-control operation to a channel. */
+    /** 对频道执行音频控制操作。 */
     public CompletableFuture<JsonNode> controlAudio(String channelId, JsonNode audioControl) {
         return post("/channels/" + id(channelId, "channelId") + "/audio", object(audioControl, "audioControl"));
     }
 
-    /** Joins the channel microphone. */
+    /** 加入频道麦克风。 */
     public CompletableFuture<JsonNode> joinMicrophone(String channelId) {
         return request("PUT", "/channels/" + id(channelId, "channelId") + "/mic", null);
     }
 
-    /** Leaves the channel microphone. */
+    /** 离开频道麦克风。 */
     public CompletableFuture<JsonNode> leaveMicrophone(String channelId) {
         return delete("/channels/" + id(channelId, "channelId") + "/mic");
     }
 
-    /** Returns the online count for a channel. */
+    /** 获取频道在线人数。 */
     public CompletableFuture<JsonNode> getChannelOnlineCount(String channelId) {
         return get("/channels/" + id(channelId, "channelId") + "/online_nums");
     }
 
-    /** Lists members in a voice channel. */
+    /** 获取语音频道成员列表。 */
     public CompletableFuture<JsonNode> listVoiceChannelMembers(String channelId) {
         return get("/channels/" + id(channelId, "channelId") + "/voice/members");
     }
 
-    /** Removes all pins from a channel. */
+    /** 清除频道全部置顶消息。 */
     public CompletableFuture<JsonNode> cleanPins(String channelId) {
         return delete(pinPath(channelId, "all"));
     }
 
-    /** Removes all guild announcements. */
+    /** 清除 Guild 全部公告。 */
     public CompletableFuture<JsonNode> cleanGuildAnnouncements(String guildId) {
         return deleteGuildAnnouncement(guildId, "all");
     }
 
-    /** Removes all channel announcements. */
+    /** 清除频道全部公告。 */
     public CompletableFuture<JsonNode> cleanChannelAnnouncements(String channelId) {
         return deleteChannelAnnouncement(channelId, "all");
     }

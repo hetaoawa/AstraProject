@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-/** Immutable configuration for a QQ official bot client. */
+/** QQ 官方机器人客户端的不可变配置。 */
 public final class BotConfig {
     private final String appId;
     private final String clientSecret;
@@ -59,102 +59,102 @@ public final class BotConfig {
         }
     }
 
-    /** Creates a builder with the framework defaults. */
+    /** 创建一个带有框架默认值的配置构建器。 */
     public static Builder builder() {
         return new Builder();
     }
 
-    /** Returns the QQ Open Platform application ID. */
+    /** 返回 QQ 开放平台 AppID。 */
     public String appId() {
         return appId;
     }
 
-    /** Returns the application secret used for authentication. */
+    /** 返回用于鉴权的 AppSecret。 */
     public String clientSecret() {
         return clientSecret;
     }
 
-    /** Returns the base URI used for OpenAPI requests. */
+    /** 返回 OpenAPI 请求使用的基础 URI。 */
     public URI apiBaseUri() {
         return apiBaseUri;
     }
 
-    /** Returns the URI used to obtain access tokens. */
+    /** 返回获取 Access Token 的 URI。 */
     public URI accessTokenUri() {
         return accessTokenUri;
     }
 
-    /** Returns the Gateway intent bit mask. */
+    /** 返回 Gateway Intent 位掩码。 */
     public long intents() {
         return intents;
     }
 
-    /** Returns this bot instance's zero-based shard ID. */
+    /** 返回当前 Bot 实例的从零开始的分片编号。 */
     public int shardId() {
         return shardId;
     }
 
-    /** Returns the total number of Gateway shards. */
+    /** 返回 Gateway 分片总数。 */
     public int shardCount() {
         return shardCount;
     }
 
-    /** Returns the HTTP and WebSocket connection timeout. */
+    /** 返回 HTTP 和 WebSocket 建连超时时间。 */
     public Duration connectTimeout() {
         return connectTimeout;
     }
 
-    /** Returns the initial Gateway reconnect delay. */
+    /** 返回 Gateway 首次重连等待时间。 */
     public Duration reconnectInitialDelay() {
         return reconnectInitialDelay;
     }
 
-    /** Returns the maximum Gateway reconnect delay. */
+    /** 返回 Gateway 重连等待时间上限。 */
     public Duration reconnectMaxDelay() {
         return reconnectMaxDelay;
     }
 
-    /** Returns the local Webhook bind address. */
+    /** 返回本地 Webhook 绑定地址。 */
     public String webhookHost() {
         return webhookHost;
     }
 
-    /** Returns the local Webhook bind port. */
+    /** 返回本地 Webhook 绑定端口。 */
     public int webhookPort() {
         return webhookPort;
     }
 
-    /** Returns the local Webhook request path. */
+    /** 返回本地 Webhook 请求路径。 */
     public String webhookPath() {
         return webhookPath;
     }
 
-    /** Returns the HTTP User-Agent value. */
+    /** 返回 HTTP User-Agent 值。 */
     public String userAgent() {
         return userAgent;
     }
 
-    /** Returns the framework console log threshold. */
+    /** 返回框架控制台日志级别阈值。 */
     public BotLogLevel logLevel() {
         return logLevel;
     }
 
-    /** Returns whether raw event payloads may be logged at TRACE level. */
+    /** 返回是否允许在 TRACE 级别输出原始事件载荷。 */
     public boolean logEventPayloads() {
         return logEventPayloads;
     }
 
-    /** Returns the configured command prefixes in matching order. */
+    /** 返回按匹配顺序排列的命令前缀。 */
     public List<String> commandPrefixes() {
         return commandPrefixes;
     }
 
-    /** Returns the delimiter used to split command tokens. */
+    /** 返回拆分命令 Token 使用的分隔符。 */
     public String commandSeparator() {
         return commandSeparator;
     }
 
-    /** Creates a builder initialized from this configuration. */
+    /** 创建一个以当前配置初始化的构建器。 */
     public Builder toBuilder() {
         return builder()
                 .appId(appId)
@@ -218,7 +218,7 @@ public final class BotConfig {
         return List.copyOf(prefixes);
     }
 
-    /** Mutable builder for {@link BotConfig}. */
+    /** {@link BotConfig} 的可变构建器。 */
     public static final class Builder {
         private String appId;
         private String clientSecret;
@@ -239,120 +239,130 @@ public final class BotConfig {
         private List<String> commandPrefixes = List.of("/");
         private String commandSeparator = " ";
 
-        /** Sets the required QQ application ID. */
+        /** 设置必填的 QQ AppID。 */
         public Builder appId(String appId) {
             this.appId = appId;
             return this;
         }
 
-        /** Sets the required QQ application secret. */
+        /** 设置必填的 QQ AppSecret。 */
         public Builder clientSecret(String clientSecret) {
             this.clientSecret = clientSecret;
             return this;
         }
 
-        /** Sets the OpenAPI base URI from a string. */
+        /** 使用字符串设置 OpenAPI 基础 URI。 */
         public Builder apiBaseUri(String apiBaseUri) {
             return apiBaseUri(URI.create(apiBaseUri));
         }
 
-        /** Sets the OpenAPI base URI. */
+        /** 设置 OpenAPI 基础 URI。 */
         public Builder apiBaseUri(URI apiBaseUri) {
             this.apiBaseUri = apiBaseUri;
             return this;
         }
 
-        /** Sets the access-token URI from a string. */
+        /** 使用字符串设置 Access Token URI。 */
         public Builder accessTokenUri(String accessTokenUri) {
             return accessTokenUri(URI.create(accessTokenUri));
         }
 
-        /** Sets the access-token URI. */
+        /** 设置 Access Token URI。 */
         public Builder accessTokenUri(URI accessTokenUri) {
             this.accessTokenUri = accessTokenUri;
             return this;
         }
 
-        /** Sets the Gateway intent bit mask. */
+        /** 设置 Gateway Intent 位掩码。 */
         public Builder intents(long intents) {
             this.intents = intents;
             return this;
         }
 
-        /** Sets the current shard ID and total shard count. */
+        /** 设置当前分片编号和分片总数。 */
         public Builder shard(int shardId, int shardCount) {
             this.shardId = shardId;
             this.shardCount = shardCount;
             return this;
         }
 
-        /** Sets the HTTP and WebSocket connection timeout. */
+        /** 设置 HTTP 和 WebSocket 建连超时。 */
         public Builder connectTimeout(Duration connectTimeout) {
             this.connectTimeout = connectTimeout;
             return this;
         }
 
-        /** Sets the initial Gateway reconnect delay. */
+        /** 设置 Gateway 首次重连延迟。 */
         public Builder reconnectInitialDelay(Duration reconnectInitialDelay) {
             this.reconnectInitialDelay = reconnectInitialDelay;
             return this;
         }
 
-        /** Sets the maximum Gateway reconnect delay. */
+        /** 设置 Gateway 最大重连延迟。 */
         public Builder reconnectMaxDelay(Duration reconnectMaxDelay) {
             this.reconnectMaxDelay = reconnectMaxDelay;
             return this;
         }
 
-        /** Sets the local Webhook bind address and port. */
+        /** 设置本地 Webhook 监听地址和端口。 */
         public Builder webhookAddress(String host, int port) {
             this.webhookHost = host;
             this.webhookPort = port;
             return this;
         }
 
-        /** Sets the local Webhook request path. */
+        /** 设置本地 Webhook 请求路径。 */
         public Builder webhookPath(String webhookPath) {
             this.webhookPath = webhookPath;
             return this;
         }
 
-        /** Sets the HTTP User-Agent value. */
+        /** 设置 HTTP User-Agent 值。 */
         public Builder userAgent(String userAgent) {
             this.userAgent = userAgent;
             return this;
         }
 
-        /** Sets the framework console log threshold. */
+        /** 设置框架控制台日志级别阈值。 */
         public Builder logLevel(BotLogLevel logLevel) {
             this.logLevel = logLevel;
             return this;
         }
 
-        /** Enables raw event data at TRACE level. Event payloads may contain user content. */
+        /** 开启 TRACE 级别原始事件输出；事件载荷可能包含用户内容。 */
         public Builder logEventPayloads(boolean logEventPayloads) {
             this.logEventPayloads = logEventPayloads;
             return this;
         }
 
-        /** Sets one or more command prefixes, such as {@code /}, {@code #}, or {@code .}. */
+        /**
+         * 设置一个或多个命令前缀，例如 {@code /}、{@code #} 或 {@code .}。
+         *
+         * @param commandPrefixes 命令前缀数组，至少包含一个非空前缀
+         * @return 当前构建器
+         */
         public Builder commandPrefixes(String... commandPrefixes) {
             return commandPrefixes(Arrays.asList(commandPrefixes));
         }
 
-        /** Sets the command prefixes from a collection. */
+        /** 从集合设置命令前缀。 */
         public Builder commandPrefixes(List<String> commandPrefixes) {
             this.commandPrefixes = commandPrefixes;
             return this;
         }
 
-        /** Sets the non-empty delimiter used to split command tokens. */
+        /**
+         * 设置用于拆分命令 Token 的非空分隔符。
+         *
+         * @param commandSeparator 分隔符，例如空格或逗号
+         * @return 当前构建器
+         */
         public Builder commandSeparator(String commandSeparator) {
             this.commandSeparator = commandSeparator;
             return this;
         }
 
-        /** Validates and creates the immutable configuration. */
+        /** 校验并创建不可变配置。 */
         public BotConfig build() {
             return new BotConfig(this);
         }

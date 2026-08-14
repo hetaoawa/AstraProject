@@ -34,6 +34,8 @@
 mvn clean install
 ```
 
+构建会同时安装主 JAR、源码 JAR 和 Javadoc JAR。IDEA 重新加载 Maven 依赖后，输入框架类和方法即可显示中文文档与参数说明；如果没有自动关联，可在 Maven 面板执行 **Download Sources**，或在 External Libraries 中手动关联 `AstraQQBot-0.1.0-SNAPSHOT-sources.jar`。
+
 然后在应用中引入：
 
 ```xml

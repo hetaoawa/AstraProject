@@ -4,8 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Set;
 
-/** Normalized C2C/group subscription-message delivery status. */
-/** Normalized message delivery or audit-status event. */
+/** 标准化的消息投递或审核状态事件。
+ * @param eventId 事件 ID
+ * @param eventType 事件类型
+ * @param messageId 消息 ID
+ * @param userOpenId 用户 OpenID
+ * @param groupOpenId 群 OpenID
+ * @param status 状态文本
+ * @param statusCode 状态码
+ * @param data 标准化数据
+ * @param raw 原始 JSON
+ */
 public record QQMessageStatusEvent(
         String eventId,
         String eventType,

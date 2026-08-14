@@ -7,7 +7,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
-/** Per-bot console logger with no external logging dependency. */
+/** 每个 Bot 独立使用的控制台日志记录器，不依赖外部日志框架。 */
 final class AstraLogger {
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter
             .ofPattern("yyyy-MM-dd HH:mm:ss.SSS")

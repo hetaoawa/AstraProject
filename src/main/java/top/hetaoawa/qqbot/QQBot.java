@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
-/** Entry point for the QQ official bot Java SDK. */
+/** QQ 官方机器人 Java SDK 的核心入口。 */
 public final class QQBot implements AutoCloseable {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -57,39 +57,49 @@ public final class QQBot implements AutoCloseable {
                 + " intents=" + config.intents());
     }
 
-    /** Creates a bot instance from immutable configuration. */
+    /**
+     * 根据不可变配置创建 Bot 实例。
+     *
+     * @param config Bot 配置，不能为 {@code null}
+     * @return 新建的 Bot 实例
+     */
     public static QQBot create(BotConfig config) {
         return new QQBot(config);
     }
 
-    /** Returns this bot's immutable configuration. */
+    /** 返回当前 Bot 的不可变配置。 */
     public BotConfig config() {
         return config;
     }
 
-    /** Returns the typed OpenAPI facade. */
+    /** 返回类型化的 OpenAPI 接口。 */
     public QQOpenApi api() {
         return openApi;
     }
 
-    /** Creates a registration scope whose listener names are derived from the plugin name. */
+    /**
+     * 创建插件注册作用域，监听器名称会由插件名称自动生成。
+     *
+     * @param pluginName 插件名称，同时作为日志中的监听器名称前缀
+     * @return 插件注册作用域
+     */
     public Plugin plugin(String pluginName) {
         return new Plugin(this, pluginName);
     }
 
-    /** Registers an unnamed synchronous raw-event listener. */
+    /** 注册未命名的同步原始事件监听器。 */
     public QQBot onEvent(Consumer<QQEvent> listener) {
         return onEventNamed(autoName(listener), listener);
     }
 
-    /** Registers a named synchronous raw-event listener. */
+    /** 注册指定名称的同步原始事件监听器。 */
     public QQBot onEventNamed(String handlerName, Consumer<QQEvent> listener) {
         eventListeners.add(syncHandler(handlerName, listener));
         logger.debug("PLUGIN", "registered event handler=" + handlerName);
         return this;
     }
 
-    /** Registers a named asynchronous raw-event listener. */
+    /** 注册指定名称的异步原始事件监听器，返回的 Stage 完成后记录处理完成。 */
     public QQBot onEventAsync(String handlerName,
                               Function<QQEvent, ? extends CompletionStage<?>> listener) {
         eventListeners.add(asyncHandler(handlerName, listener));
@@ -97,12 +107,12 @@ public final class QQBot implements AutoCloseable {
         return this;
     }
 
-    /** Registers an unnamed synchronous listener for one event type. */
+    /** 注册未命名的指定事件类型同步监听器。 */
     public QQBot onEvent(String type, Consumer<QQEvent> listener) {
         return onEvent(type, autoName(listener), listener);
     }
 
-    /** Registers a named synchronous listener for one event type. */
+    /** 注册指定名称的指定事件类型同步监听器。 */
     public QQBot onEvent(String type, String handlerName, Consumer<QQEvent> listener) {
         requireEventType(type);
         typedListeners.computeIfAbsent(type, ignored -> new CopyOnWriteArrayList<>())
@@ -111,7 +121,7 @@ public final class QQBot implements AutoCloseable {
         return this;
     }
 
-    /** Registers a named asynchronous listener for one event type. */
+    /** 注册指定名称的指定事件类型异步监听器。 */
     public QQBot onEventAsync(String type, String handlerName,
                               Function<QQEvent, ? extends CompletionStage<?>> listener) {
         requireEventType(type);
@@ -121,19 +131,19 @@ public final class QQBot implements AutoCloseable {
         return this;
     }
 
-    /** Registers an unnamed synchronous normalized-message listener. */
+    /** 注册未命名的同步标准化消息监听器。 */
     public QQBot onMessage(Consumer<QQMessageEvent> listener) {
         return onMessage(autoName(listener), listener);
     }
 
-    /** Registers a named synchronous normalized-message listener. */
+    /** 注册指定名称的同步标准化消息监听器。 */
     public QQBot onMessage(String handlerName, Consumer<QQMessageEvent> listener) {
         messageListeners.add(syncHandler(handlerName, listener));
         logger.debug("PLUGIN", "registered message handler=" + handlerName);
         return this;
     }
 
-    /** Registers a named asynchronous normalized-message listener. */
+    /** 注册指定名称的异步标准化消息监听器。 */
     public QQBot onMessageAsync(String handlerName,
                                 Function<QQMessageEvent, ? extends CompletionStage<?>> listener) {
         messageListeners.add(asyncHandler(handlerName, listener));
@@ -141,19 +151,19 @@ public final class QQBot implements AutoCloseable {
         return this;
     }
 
-    /** Registers an unnamed synchronous interaction listener. */
+    /** 注册未命名的同步互动监听器。 */
     public QQBot onInteraction(Consumer<QQInteractionEvent> listener) {
         return onInteraction(autoName(listener), listener);
     }
 
-    /** Registers a named synchronous interaction listener. */
+    /** 注册指定名称的同步互动监听器。 */
     public QQBot onInteraction(String handlerName, Consumer<QQInteractionEvent> listener) {
         interactionListeners.add(syncHandler(handlerName, listener));
         logger.debug("PLUGIN", "registered interaction handler=" + handlerName);
         return this;
     }
 
-    /** Registers a named asynchronous interaction listener. */
+    /** 注册指定名称的异步互动监听器。 */
     public QQBot onInteractionAsync(String handlerName,
                                     Function<QQInteractionEvent, ? extends CompletionStage<?>> listener) {
         interactionListeners.add(asyncHandler(handlerName, listener));
@@ -161,19 +171,19 @@ public final class QQBot implements AutoCloseable {
         return this;
     }
 
-    /** Registers an unnamed synchronous relationship listener. */
+    /** 注册未命名的同步关系事件监听器。 */
     public QQBot onRelationship(Consumer<QQRelationshipEvent> listener) {
         return onRelationship(autoName(listener), listener);
     }
 
-    /** Registers a named synchronous relationship listener. */
+    /** 注册指定名称的同步关系事件监听器。 */
     public QQBot onRelationship(String handlerName, Consumer<QQRelationshipEvent> listener) {
         relationshipListeners.add(syncHandler(handlerName, listener));
         logger.debug("PLUGIN", "registered relationship handler=" + handlerName);
         return this;
     }
 
-    /** Registers a named asynchronous relationship listener. */
+    /** 注册指定名称的异步关系事件监听器。 */
     public QQBot onRelationshipAsync(String handlerName,
                                      Function<QQRelationshipEvent, ? extends CompletionStage<?>> listener) {
         relationshipListeners.add(asyncHandler(handlerName, listener));
@@ -181,19 +191,19 @@ public final class QQBot implements AutoCloseable {
         return this;
     }
 
-    /** Registers an unnamed synchronous message-status listener. */
+    /** 注册未命名的同步消息状态监听器。 */
     public QQBot onMessageStatus(Consumer<QQMessageStatusEvent> listener) {
         return onMessageStatus(autoName(listener), listener);
     }
 
-    /** Registers a named synchronous message-status listener. */
+    /** 注册指定名称的同步消息状态监听器。 */
     public QQBot onMessageStatus(String handlerName, Consumer<QQMessageStatusEvent> listener) {
         messageStatusListeners.add(syncHandler(handlerName, listener));
         logger.debug("PLUGIN", "registered message-status handler=" + handlerName);
         return this;
     }
 
-    /** Registers a named asynchronous message-status listener. */
+    /** 注册指定名称的异步消息状态监听器。 */
     public QQBot onMessageStatusAsync(String handlerName,
                                       Function<QQMessageStatusEvent, ? extends CompletionStage<?>> listener) {
         messageStatusListeners.add(asyncHandler(handlerName, listener));
@@ -201,19 +211,19 @@ public final class QQBot implements AutoCloseable {
         return this;
     }
 
-    /** Registers an unnamed synchronous resource listener. */
+    /** 注册未命名的同步资源监听器。 */
     public QQBot onResource(Consumer<QQResourceEvent> listener) {
         return onResource(autoName(listener), listener);
     }
 
-    /** Registers a named synchronous resource listener. */
+    /** 注册指定名称的同步资源监听器。 */
     public QQBot onResource(String handlerName, Consumer<QQResourceEvent> listener) {
         resourceListeners.add(syncHandler(handlerName, listener));
         logger.debug("PLUGIN", "registered resource handler=" + handlerName);
         return this;
     }
 
-    /** Registers a named asynchronous resource listener. */
+    /** 注册指定名称的异步资源监听器。 */
     public QQBot onResourceAsync(String handlerName,
                                  Function<QQResourceEvent, ? extends CompletionStage<?>> listener) {
         resourceListeners.add(asyncHandler(handlerName, listener));
@@ -240,12 +250,12 @@ public final class QQBot implements AutoCloseable {
         return this;
     }
 
-    /** Registers an unnamed error listener. */
+    /** 注册未命名的错误监听器。 */
     public QQBot onError(Consumer<Throwable> listener) {
         return onError(autoName(listener), listener);
     }
 
-    /** Registers a named error listener. */
+    /** 注册指定名称的错误监听器。 */
     public QQBot onError(String handlerName, Consumer<Throwable> listener) {
         errorListeners.add(new NamedErrorHandler(requireHandlerName(handlerName),
                 Objects.requireNonNull(listener, "listener")));
@@ -264,110 +274,126 @@ public final class QQBot implements AutoCloseable {
             this.name = requireHandlerName(name);
         }
 
-        /** Returns the plugin name used as the listener-name prefix. */
+        /** 返回用于生成监听器名称前缀的插件名称。 */
         public String name() {
             return name;
         }
 
-        /** Registers a synchronous raw-event listener in this plugin scope. */
+        /** 在当前插件作用域注册同步原始事件监听器。 */
         public Plugin onEvent(Consumer<QQEvent> listener) {
             bot.onEventNamed(handler("event"), listener);
             return this;
         }
 
-        /** Registers an asynchronous raw-event listener in this plugin scope. */
+        /** 在当前插件作用域注册异步原始事件监听器。 */
         public Plugin onEventAsync(Function<QQEvent, ? extends CompletionStage<?>> listener) {
             bot.onEventAsync(handler("event"), listener);
             return this;
         }
 
-        /** Registers a synchronous typed-event listener in this plugin scope. */
+        /** 在当前插件作用域注册同步指定类型事件监听器。 */
         public Plugin onEvent(String type, Consumer<QQEvent> listener) {
             bot.onEvent(type, handler("event." + type), listener);
             return this;
         }
 
-        /** Registers an asynchronous typed-event listener in this plugin scope. */
+        /** 在当前插件作用域注册异步指定类型事件监听器。 */
         public Plugin onEventAsync(String type, Function<QQEvent, ? extends CompletionStage<?>> listener) {
             bot.onEventAsync(type, handler("event." + type), listener);
             return this;
         }
 
-        /** Registers a synchronous message listener in this plugin scope. */
+        /** 在当前插件作用域注册同步消息监听器。 */
         public Plugin onMessage(Consumer<QQMessageEvent> listener) {
             bot.onMessage(handler("message"), listener);
             return this;
         }
 
-        /** Registers an asynchronous message listener in this plugin scope. */
+        /** 在当前插件作用域注册异步消息监听器。 */
         public Plugin onMessageAsync(Function<QQMessageEvent, ? extends CompletionStage<?>> listener) {
             bot.onMessageAsync(handler("message"), listener);
             return this;
         }
 
-        /** Registers a prioritized synchronous command listener in this plugin scope. */
+        /**
+         * 在当前插件作用域注册带优先级的同步命令监听器。
+         *
+         * @param command 要匹配的命令名，不包含前缀
+         * @param priority 优先级，数值越大越先执行
+         * @param continuePropagation 是否允许继续执行下一个匹配监听器
+         * @param listener 命令处理函数
+         * @return 当前插件作用域
+         */
         public Plugin onCommand(String command, int priority, boolean continuePropagation,
                                 Consumer<QQCommandEvent> listener) {
             bot.onCommand(handler("command." + command), command, priority, continuePropagation, listener);
             return this;
         }
 
-        /** Registers a prioritized asynchronous command listener in this plugin scope. */
+        /**
+         * 在当前插件作用域注册带优先级的异步命令监听器。
+         *
+         * @param command 要匹配的命令名，不包含前缀
+         * @param priority 优先级，数值越大越先执行
+         * @param continuePropagation 是否允许继续执行下一个匹配监听器
+         * @param listener 命令处理函数，返回的 Stage 完成后才继续传播
+         * @return 当前插件作用域
+         */
         public Plugin onCommandAsync(String command, int priority, boolean continuePropagation,
                                      Function<QQCommandEvent, ? extends CompletionStage<?>> listener) {
             bot.onCommandAsync(handler("command." + command), command, priority, continuePropagation, listener);
             return this;
         }
 
-        /** Registers a synchronous interaction listener in this plugin scope. */
+        /** 在当前插件作用域注册同步互动监听器。 */
         public Plugin onInteraction(Consumer<QQInteractionEvent> listener) {
             bot.onInteraction(handler("interaction"), listener);
             return this;
         }
 
-        /** Registers an asynchronous interaction listener in this plugin scope. */
+        /** 在当前插件作用域注册异步互动监听器。 */
         public Plugin onInteractionAsync(Function<QQInteractionEvent, ? extends CompletionStage<?>> listener) {
             bot.onInteractionAsync(handler("interaction"), listener);
             return this;
         }
 
-        /** Registers a synchronous relationship listener in this plugin scope. */
+        /** 在当前插件作用域注册同步关系事件监听器。 */
         public Plugin onRelationship(Consumer<QQRelationshipEvent> listener) {
             bot.onRelationship(handler("relationship"), listener);
             return this;
         }
 
-        /** Registers an asynchronous relationship listener in this plugin scope. */
+        /** 在当前插件作用域注册异步关系事件监听器。 */
         public Plugin onRelationshipAsync(Function<QQRelationshipEvent, ? extends CompletionStage<?>> listener) {
             bot.onRelationshipAsync(handler("relationship"), listener);
             return this;
         }
 
-        /** Registers a synchronous message-status listener in this plugin scope. */
+        /** 在当前插件作用域注册同步消息状态监听器。 */
         public Plugin onMessageStatus(Consumer<QQMessageStatusEvent> listener) {
             bot.onMessageStatus(handler("message-status"), listener);
             return this;
         }
 
-        /** Registers an asynchronous message-status listener in this plugin scope. */
+        /** 在当前插件作用域注册异步消息状态监听器。 */
         public Plugin onMessageStatusAsync(Function<QQMessageStatusEvent, ? extends CompletionStage<?>> listener) {
             bot.onMessageStatusAsync(handler("message-status"), listener);
             return this;
         }
 
-        /** Registers a synchronous resource listener in this plugin scope. */
+        /** 在当前插件作用域注册同步资源监听器。 */
         public Plugin onResource(Consumer<QQResourceEvent> listener) {
             bot.onResource(handler("resource"), listener);
             return this;
         }
 
-        /** Registers an asynchronous resource listener in this plugin scope. */
+        /** 在当前插件作用域注册异步资源监听器。 */
         public Plugin onResourceAsync(Function<QQResourceEvent, ? extends CompletionStage<?>> listener) {
             bot.onResourceAsync(handler("resource"), listener);
             return this;
         }
 
-        /** Registers an error listener in this plugin scope. */
+        /** 在当前插件作用域注册错误监听器。 */
         public Plugin onError(Consumer<Throwable> listener) {
             bot.onError(handler("error"), listener);
             return this;
@@ -381,12 +407,12 @@ public final class QQBot implements AutoCloseable {
         }
     }
 
-    /** Starts a reconnecting WebSocket Gateway client. The future completes after READY. */
+    /** 启动可自动重连的 WebSocket Gateway；Future 在收到 READY 后完成。 */
     public CompletableFuture<Void> startWebSocket() {
         return gateway.start();
     }
 
-    /** Starts the local HTTP callback listener; put TLS termination in front of it in production. */
+    /** 启动本地 HTTP 回调服务；生产环境应在前置网关完成 TLS 终止。 */
     public synchronized WebhookServer startWebhook() throws IOException {
         if (webhook == null) {
             webhook = new WebhookServer(this, config, logger).start();
@@ -394,29 +420,29 @@ public final class QQBot implements AutoCloseable {
         return webhook;
     }
 
-    /** Sends a plain-text private message. */
+    /** 发送私聊文本消息。 */
     public CompletableFuture<MessageResponse> sendPrivateMessage(String userOpenId, String content) {
         return sendPrivateMessage(userOpenId, MessagePayload.text(content));
     }
 
-    /** Sends a prepared private-message payload. */
+    /** 发送已构造的私聊消息载荷。 */
     public CompletableFuture<MessageResponse> sendPrivateMessage(String userOpenId, MessagePayload payload) {
         requireId(userOpenId, "userOpenId");
         return sendMessage("/v2/users/" + encodePathSegment(userOpenId) + "/messages", payload);
     }
 
-    /** Sends a plain-text group message. */
+    /** 发送群聊文本消息。 */
     public CompletableFuture<MessageResponse> sendGroupMessage(String groupOpenId, String content) {
         return sendGroupMessage(groupOpenId, MessagePayload.text(content));
     }
 
-    /** Sends a prepared group-message payload. */
+    /** 发送已构造的群聊消息载荷。 */
     public CompletableFuture<MessageResponse> sendGroupMessage(String groupOpenId, MessagePayload payload) {
         requireId(groupOpenId, "groupOpenId");
         return sendMessage("/v2/groups/" + encodePathSegment(groupOpenId) + "/messages", payload);
     }
 
-    /** Sends a plain-text reply to a normalized message event. */
+    /** 回复标准化消息事件，并发送文本内容。 */
     public CompletableFuture<MessageResponse> replyText(QQMessageEvent event, String content) {
         Objects.requireNonNull(event, "event");
         MessagePayload payload = MessagePayload.text(content).replyTo(event);
@@ -745,7 +771,7 @@ public final class QQBot implements AutoCloseable {
     private record NamedErrorHandler(String name, Consumer<Throwable> action) {
     }
 
-    /** Stops Gateway, Webhook, schedulers, and other bot-owned resources. */
+    /** 关闭 Gateway、Webhook、调度器及其他由 Bot 持有的资源。 */
     @Override
     public synchronized void close() {
         logger.info("BOT", "closing shard=" + config.shardId() + "/" + config.shardCount());

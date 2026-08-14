@@ -16,10 +16,10 @@ import java.util.HexFormat;
 import java.util.concurrent.Executors;
 
 /**
- * Minimal JDK HTTP callback server. Put it behind an HTTPS reverse proxy in production;
- * QQ requires the configured callback endpoint to be HTTPS.
+ * 基于 JDK 的轻量 HTTP 回调服务器。生产环境应放在 HTTPS 反向代理之后，
+ * 因为 QQ 要求配置的回调地址使用 HTTPS。
  */
-/** Embedded HTTP server for QQ Webhook callbacks and validation. */
+/** 用于 QQ Webhook 回调和验证的内置 HTTP 服务器。 */
 public final class WebhookServer implements AutoCloseable {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
@@ -35,7 +35,7 @@ public final class WebhookServer implements AutoCloseable {
         this.logger = logger;
     }
 
-    /** Starts listening on the configured address and returns this server. */
+    /** 在配置的地址开始监听并返回当前服务器。 */
     public synchronized WebhookServer start() throws IOException {
         if (server != null) {
             return this;
@@ -53,7 +53,7 @@ public final class WebhookServer implements AutoCloseable {
         return this;
     }
 
-    /** Returns whether the embedded HTTP server is currently running. */
+    /** 返回内置 HTTP 服务器当前是否正在运行。 */
     public synchronized boolean isRunning() {
         return server != null;
     }
@@ -194,7 +194,7 @@ public final class WebhookServer implements AutoCloseable {
         exchange.getResponseBody().write(bytes);
     }
 
-    /** Stops the embedded HTTP server if it is running. */
+    /** 停止正在运行的内置 HTTP 服务器。 */
     @Override
     public synchronized void close() {
         if (server != null) {

@@ -5,8 +5,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.Set;
 
-/** Normalized friend, group membership and robot relationship event. */
-/** Normalized friend, group-member, or relationship event. */
+/** 标准化的好友、群成员和机器人关系事件。
+ * @param eventId 事件 ID
+ * @param eventType 事件类型
+ * @param userOpenId 用户 OpenID
+ * @param groupOpenId 群 OpenID
+ * @param memberOpenId 成员 OpenID
+ * @param operatorOpenId 操作者 OpenID
+ * @param timestamp 事件时间
+ * @param data 标准化数据
+ * @param raw 原始 JSON
+ */
 public record QQRelationshipEvent(
         String eventId,
         String eventType,

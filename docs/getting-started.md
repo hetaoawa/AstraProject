@@ -21,6 +21,15 @@ mvn clean install
 top.hetaoawa:AstraQQBot:0.1.0-SNAPSHOT
 ```
 
+安装过程还会把以下两个辅助制品写入本地 Maven 仓库：
+
+```text
+AstraQQBot-0.1.0-SNAPSHOT-sources.jar
+AstraQQBot-0.1.0-SNAPSHOT-javadoc.jar
+```
+
+其中 `sources.jar` 用于 IDEA 查看源码和中文 Javadoc，`javadoc.jar` 用于 IDE 的外部文档索引。重新执行 `mvn clean install` 后，在 IDEA Maven 工具窗口点击 Reload Project；如果仍未显示文档，右键依赖选择 **Download Sources**，或删除旧的本地版本后重新安装。
+
 ## 凭证管理
 
 推荐通过环境变量或密钥管理服务注入凭证：

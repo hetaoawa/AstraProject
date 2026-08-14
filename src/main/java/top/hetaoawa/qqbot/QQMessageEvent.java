@@ -6,8 +6,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Normalized private/group message event with reply helpers. */
-/** Normalized private or group message event with reply helpers. */
+/** 标准化的私聊或群聊消息事件，提供消息字段访问和回复方法。 */
 public final class QQMessageEvent {
     private final QQBot bot;
     private final String eventId;
@@ -72,72 +71,72 @@ public final class QQMessageEvent {
         return new QQMessageEvent(bot, event.id(), event.type(), event.data(), event.raw());
     }
 
-    /** Returns the framework event ID. */
+    /** 返回框架事件 ID。 */
     public String eventId() {
         return eventId;
     }
 
-    /** Returns the original QQ event type. */
+    /** 返回原始 QQ 事件类型。 */
     public String eventType() {
         return eventType;
     }
 
-    /** Returns the QQ message ID. */
+    /** 返回 QQ 消息 ID。 */
     public String messageId() {
         return messageId;
     }
 
-    /** Returns the normalized message author. */
+    /** 返回标准化消息作者。 */
     public QQUser author() {
         return author;
     }
 
-    /** Returns the message text, or {@code null} for non-text content. */
+    /** 返回消息文本；非文本消息返回 {@code null}。 */
     public String content() {
         return content;
     }
 
-    /** Returns the private-message user OpenID, when present. */
+    /** 返回私聊用户 OpenID；不存在时返回 {@code null}。 */
     public String userOpenId() {
         return userOpenId;
     }
 
-    /** Returns the group OpenID, when present. */
+    /** 返回群 OpenID；不存在时返回 {@code null}。 */
     public String groupOpenId() {
         return groupOpenId;
     }
 
-    /** Returns the QQ message type code, when present. */
+    /** 返回 QQ 消息类型码；不存在时返回 {@code null}。 */
     public Integer messageType() {
         return messageType;
     }
 
-    /** Returns the message timestamp, when it could be parsed. */
+    /** 返回消息时间戳；无法解析时返回 {@code null}。 */
     public Instant timestamp() {
         return timestamp;
     }
 
-    /** Returns normalized scene metadata. */
+    /** 返回标准化消息场景元数据。 */
     public QQMessageScene scene() {
         return scene;
     }
 
-    /** Returns the immutable attachment list. */
+    /** 返回不可变附件列表。 */
     public List<QQAttachment> attachments() {
         return attachments;
     }
 
-    /** Returns the original message JSON payload. */
+    /** 返回原始消息 JSON 载荷。 */
     public JsonNode raw() {
         return raw;
     }
 
-    /** Returns whether this message originated in a group. */
+    /** 判断消息是否来自群聊。 */
     public boolean isGroupMessage() {
         return groupOpenId != null && !groupOpenId.isBlank();
     }
 
-    /** Sends a text reply to this message. */
+    /** 向当前消息发送文本回复。 */
     public java.util.concurrent.CompletableFuture<MessageResponse> replyText(String content) {
         return bot.replyText(this, content);
     }

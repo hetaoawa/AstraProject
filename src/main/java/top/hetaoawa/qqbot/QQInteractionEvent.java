@@ -5,8 +5,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-/** Normalized interaction and reaction event. */
-/** Normalized interaction event with a helper for acknowledging it. */
+/** 标准化互动事件，并提供互动响应方法。
+ * @param bot 所属 Bot
+ * @param eventId 事件 ID
+ * @param eventType 事件类型
+ * @param interactionId 互动 ID
+ * @param applicationId 应用 ID
+ * @param userOpenId 用户 OpenID
+ * @param groupOpenId 群 OpenID
+ * @param chatType 会话类型
+ * @param scene 互动场景
+ * @param data 标准化数据
+ * @param raw 原始 JSON
+ */
 public record QQInteractionEvent(
         QQBot bot,
         String eventId,
@@ -35,7 +46,7 @@ public record QQInteractionEvent(
                 text(data, "group_openid"), integer(data, "chat_type"), text(data, "scene"), data, event.raw());
     }
 
-    /** Sends an interaction callback response with the supplied callback code. */
+    /** 使用指定回调码发送互动响应。 */
     public CompletableFuture<JsonNode> respond(int code) {
         if (interactionId == null || interactionId.isBlank()) {
             return CompletableFuture.failedFuture(new IllegalStateException("event has no interaction id"));
