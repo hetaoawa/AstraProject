@@ -18,7 +18,7 @@ mvn clean install
 项目会安装为：
 
 ```text
-io.github.hetaoawa:qq-official-bot-java:0.1.0-SNAPSHOT
+top.hetaoawa:AstraQQBot:0.1.0-SNAPSHOT
 ```
 
 ## 凭证管理

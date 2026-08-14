@@ -1,6 +1,6 @@
-import io.github.hetaoawa.qqbot.BotConfig;
-import io.github.hetaoawa.qqbot.Intents;
-import io.github.hetaoawa.qqbot.QQBot;
+import top.hetaoawa.qqbot.BotConfig;
+import top.hetaoawa.qqbot.Intents;
+import top.hetaoawa.qqbot.QQBot;
 
 import java.util.concurrent.CountDownLatch;
 

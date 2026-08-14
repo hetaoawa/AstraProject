@@ -15,7 +15,7 @@
 | `reconnectMaxDelay(Duration)` | 30 秒 | Gateway 指数退避上限 |
 | `webhookAddress(String, int)` | `127.0.0.1:8080` | 内置 HTTP 服务器监听地址 |
 | `webhookPath(String)` | `/qqbot/events` | Webhook 请求路径 |
-| `userAgent(String)` | `qq-official-bot-java/0.1.0` | HTTP User-Agent |
+| `userAgent(String)` | `AstraQQBot/0.1.0` | HTTP User-Agent |
 
 ## Intents
 

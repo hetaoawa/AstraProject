@@ -1,4 +1,4 @@
-# QQ Official Bot Java
+# AstraQQBot
 
 面向 Java 17+ 的 QQ 官方机器人轻量开发框架，封装 QQ Bot API v2 的鉴权、WebSocket Gateway、Webhook 回调以及单聊/群聊消息收发。
 
@@ -29,8 +29,8 @@ mvn clean install
 
 ```xml
 <dependency>
-    <groupId>io.github.hetaoawa</groupId>
-    <artifactId>qq-official-bot-java</artifactId>
+    <groupId>top.hetaoawa</groupId>
+    <artifactId>AstraQQBot</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
 ```
@@ -47,9 +47,9 @@ export QQ_BOT_CLIENT_SECRET="你的 AppSecret"
 ### 3. 启动 WebSocket Bot
 
 ```java
-import io.github.hetaoawa.qqbot.BotConfig;
-import io.github.hetaoawa.qqbot.Intents;
-import io.github.hetaoawa.qqbot.QQBot;
+import top.hetaoawa.qqbot.BotConfig;
+import top.hetaoawa.qqbot.Intents;
+import top.hetaoawa.qqbot.QQBot;
 
 public class Main {
     public static void main(String[] args) {

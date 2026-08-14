@@ -1,4 +1,4 @@
-package io.github.hetaoawa.qqbot;
+package top.hetaoawa.qqbot;
 
 /** QQ Bot Gateway intent bit masks from the official API. */
 public final class Intents {

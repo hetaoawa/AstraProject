@@ -1,4 +1,4 @@
-package io.github.hetaoawa.qqbot;
+package top.hetaoawa.qqbot;
 
 import java.net.URI;
 import java.time.Duration;
@@ -142,7 +142,7 @@ public final class BotConfig {
         private String webhookHost = "127.0.0.1";
         private int webhookPort = 8080;
         private String webhookPath = "/qqbot/events";
-        private String userAgent = "qq-official-bot-java/0.1.0";
+        private String userAgent = "AstraQQBot/0.1.0";
 
         public Builder appId(String appId) {
             this.appId = appId;

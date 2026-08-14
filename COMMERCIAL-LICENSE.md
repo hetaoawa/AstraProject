@@ -1,6 +1,6 @@
 # 商业授权说明
 
-QQ Official Bot Java 采用双轨授权模式。
+AstraQQBot 采用双轨授权模式。
 
 ## 免费许可
 
