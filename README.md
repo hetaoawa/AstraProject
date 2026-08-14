@@ -2,7 +2,7 @@
 
 面向 Java 17+ 的 QQ 官方机器人轻量开发框架，封装 QQ Bot API v2 的鉴权、WebSocket Gateway、Webhook 回调以及单聊/群聊消息收发。
 
-> 当前为 `0.1.0-SNAPSHOT`。第一阶段不包含频道相关 API；接口仍可能调整。
+> 当前为 `0.1.0-SNAPSHOT`。暂不包含频道消息收发和频道私信；其他管理接口仍可能调整。
 
 ## 已实现
 
@@ -12,6 +12,11 @@
 - Webhook 回调地址验证、Ed25519 请求验签和 Callback ACK。
 - 接收 `C2C_MESSAGE_CREATE`、`GROUP_AT_MESSAGE_CREATE`、`GROUP_MESSAGE_CREATE`。
 - 发送单聊/群聊文本和 Markdown 消息。
+- 支持 C2C 流式消息、富媒体上传、Ark、Markdown 模板和消息键盘。
+- 支持 C2C/群聊撤回、互动响应、Reaction、置顶、公告、日程、论坛和音频控制。
+- 支持机器人菜单/面板、群聊审批与禁言，以及 Guild/Channel/成员/角色/权限管理。
+- 标准化互动、好友/群关系、消息状态和资源变更事件。
+- `QQBotCluster` 自动创建并管理多分片 Gateway 实例。
 - 原始事件、指定事件类型、标准化消息三种监听方式。
 - 保留原始 JSON，便于兼容官方新增字段。
 
@@ -82,6 +87,7 @@ public class Main {
 - [事件与消息模型](docs/events.md)
 - [发送与回复消息](docs/messages.md)
 - [框架支持功能列表](docs/support-matrix.md)
+- [扩展 OpenAPI 与管理能力](docs/open-api.md)
 - [WebSocket 生命周期](docs/websocket.md)
 - [Webhook 部署与安全](docs/webhook.md)
 - [架构与线程模型](docs/architecture.md)
@@ -89,8 +95,8 @@ public class Main {
 
 ## 当前边界
 
-- 暂不支持频道、频道私信、富媒体上传、撤回消息和流式消息。
-- `shard(id, count)` 只配置当前实例的分片参数；框架不会自动创建多分片实例。
+- 暂不支持频道消息发送/接收和频道私信；频道资源及内容管理 API 已提供。
+- Embed 属于频道消息载荷，因此随频道消息能力一并排除。
 - 框架不做业务级消息去重。QQ 可能重复推送同一消息，应用应结合消息 ID 和场景索引实现幂等。
 - 事件监听器在接收线程中同步执行，耗时任务应自行转交业务线程池。
 - 未使用真实机器人凭证执行端到端测试；协议行为以 QQ 官方平台实际响应为准。

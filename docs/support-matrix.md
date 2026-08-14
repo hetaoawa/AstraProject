@@ -14,12 +14,13 @@
 | 原始事件接收 | ✅ 已支持 | `QQEvent` 保留 `op`、`type`、`data`、`raw`，支持全局和按事件类型监听 |
 | C2C/单聊消息 | ✅ 已支持 | 接收 `C2C_MESSAGE_CREATE`，发送文本/Markdown，支持被动回复 |
 | 群聊消息 | ✅ 已支持 | 接收 `GROUP_AT_MESSAGE_CREATE`、`GROUP_MESSAGE_CREATE`，发送文本/Markdown，支持被动回复 |
-| 频道消息与频道私信 | ❌ 未实现 | 当前没有 Guild/Channel 模型、Intent、接收事件或发送端点 |
-| 富媒体、Embed、模板、键盘、音频、论坛等消息类型 | ⚠️ 有条件支持 | `MessagePayload.put/set/raw` 可传递自定义 JSON，但没有类型安全模型、媒体上传和专用端点 |
-| 消息互动、消息撤回、消息置顶、公告、日程 | ❌ 未实现 | 没有对应的 Java API |
-| 机器人、群聊、频道管理 | ❌ 未实现 | 没有成员、角色、权限、频道和机器人管理 API |
-| 互动事件、好友/群关系事件、消息状态事件 | ⚠️ 原始事件可观察 | `onEvent` 可以收到协议事件（前提是订阅和传输层收到），但没有标准化事件模型与业务 API |
-| 多分片运行与分片调度 | ⚠️ 部分支持 | 可配置 `shard(id, count)`，但不会自动创建、调度和管理多个分片实例 |
+| 频道消息与频道私信 | ❌ 本轮明确排除 | 不提供频道消息发送/接收和频道私信端点；频道资源管理不受此限制 |
+| C2C/群聊富媒体、Ark、模板、键盘、流式消息 | ✅ 已支持 | 提供载荷构造器、媒体直传/分片上传流程和 C2C 流式消息 API；Embed 属于频道消息，仍排除 |
+| 消息互动、撤回、Reaction、置顶、公告、日程 | ✅ 已支持 | `QQOpenApi` 提供明确命名的方法；实际权限由平台控制 |
+| 机器人、群聊、Guild/Channel 管理 | ✅ 已支持 | 菜单、面板、群资料/审批/禁言、Guild/Channel、成员、角色和权限 API |
+| 互动事件、好友/群关系事件、消息状态事件 | ✅ 已支持 | 提供 `QQInteractionEvent`、`QQRelationshipEvent`、`QQMessageStatusEvent` 和专用监听器 |
+| Guild/Channel、论坛和音频资源事件 | ✅ 已支持 | 提供 `QQResourceEvent` 和 `onResource` 监听器 |
+| 多分片运行与分片调度 | ✅ 已支持 | `QQBotCluster` 自动创建、启动和关闭全部分片实例 |
 
 ## 已支持能力
 
@@ -46,16 +47,15 @@
 
 对应官方参考：[消息收发概述](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/overview.html)、[消息类型](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/format.html)、[发送消息](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/send.html)、[消息事件](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/event.html)。
 
-## 尚未实现的官方能力
+## 本轮明确排除的官方能力
 
-以下能力在官方文档中已有对应目录或接口，但当前项目没有专用实现。它们不能仅凭 `onEvent` 的原始 JSON 监听或 `MessagePayload` 的自由字段写入，就算作框架已支持：
+本轮仅保留以下未实现项：
 
-- 频道/Guild、频道私信、频道消息以及 Guild/Channel/User/Member/Role 等资源模型；
-- 机器人资料、群聊管理、频道管理、成员/角色/权限管理；
-- 消息撤回、置顶、公告、日程、论坛、音频和其他频道内容管理；
-- Emoji、Reaction、消息互动、互动回调和消息状态订阅；
-- 好友添加/删除、加群申请、群成员变更、机器人进退群等标准化事件；
-- 富媒体上传、Embed、模板消息、Markdown 键盘等类型安全的消息构造器。
+- 频道消息发送与接收；
+- 频道私信创建、发送、接收与撤回；
+- 仅能用于频道消息的 Embed 载荷。
+
+Guild/Channel 资源管理、频道公告/置顶/日程/论坛/音频、Reaction 等非消息投递能力已经通过 `QQOpenApi` 提供。管理接口使用明确命名的方法和官方 JSON 请求体，以兼容官方字段扩展；这不等同于支持频道消息本身。
 
 官方目录参考：[频道服务端接口](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/)、[消息类型](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/type/overview.html)、[消息互动](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/interaction.html)、[群聊管理](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/group/)、[频道管理](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/guild/)。具体接口是否对某类机器人开放，仍以 QQ 开放平台控制台权限和官方接口返回为准。
 
@@ -63,5 +63,5 @@
 
 1. 官方文档列出的能力不等于所有机器人默认拥有权限；订阅位图、机器人类型、场景权限和平台策略仍会影响实际可用性。
 2. 框架当前的原始事件分发有利于提前接入新事件，但不会自动完成字段校验、事件去重、资源模型转换或专用 API 封装。
-3. 框架当前只实现 C2C/群聊消息发送端点；即使请求体可以扩展，不能据此推断已经支持频道消息、媒体上传或其他资源管理。
+3. 框架仍只实现 C2C/群聊消息发送端点；管理 API 中出现 `channelId` 不代表已经支持频道消息或频道私信。
 4. 该列表是实现进度清单，不是 QQ 官方能力的完整 API 参考；新增功能时应同步更新本文件和对应的 API 文档链接。

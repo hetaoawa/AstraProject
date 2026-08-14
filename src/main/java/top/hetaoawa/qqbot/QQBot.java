@@ -27,8 +27,13 @@ public final class QQBot implements AutoCloseable {
     private final AccessTokenManager tokenManager;
     private final HttpApiClient api;
     private final GatewayClient gateway;
+    private final QQOpenApi openApi;
     private final List<Consumer<QQEvent>> eventListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<QQMessageEvent>> messageListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<QQInteractionEvent>> interactionListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<QQRelationshipEvent>> relationshipListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<QQMessageStatusEvent>> messageStatusListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<QQResourceEvent>> resourceListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<Throwable>> errorListeners = new CopyOnWriteArrayList<>();
     private final Map<String, List<Consumer<QQEvent>>> typedListeners = new ConcurrentHashMap<>();
     private volatile WebhookServer webhook;
@@ -41,6 +46,7 @@ public final class QQBot implements AutoCloseable {
                 .build();
         this.tokenManager = new AccessTokenManager(config, httpClient);
         this.api = new HttpApiClient(config, httpClient, tokenManager);
+        this.openApi = new QQOpenApi(api, config.appId());
         this.gateway = new GatewayClient(this, config, api, httpClient);
     }
 
@@ -50,6 +56,10 @@ public final class QQBot implements AutoCloseable {
 
     public BotConfig config() {
         return config;
+    }
+
+    public QQOpenApi api() {
+        return openApi;
     }
 
     public QQBot onEvent(Consumer<QQEvent> listener) {
@@ -66,6 +76,26 @@ public final class QQBot implements AutoCloseable {
 
     public QQBot onMessage(Consumer<QQMessageEvent> listener) {
         messageListeners.add(Objects.requireNonNull(listener, "listener"));
+        return this;
+    }
+
+    public QQBot onInteraction(Consumer<QQInteractionEvent> listener) {
+        interactionListeners.add(Objects.requireNonNull(listener, "listener"));
+        return this;
+    }
+
+    public QQBot onRelationship(Consumer<QQRelationshipEvent> listener) {
+        relationshipListeners.add(Objects.requireNonNull(listener, "listener"));
+        return this;
+    }
+
+    public QQBot onMessageStatus(Consumer<QQMessageStatusEvent> listener) {
+        messageStatusListeners.add(Objects.requireNonNull(listener, "listener"));
+        return this;
+    }
+
+    public QQBot onResource(Consumer<QQResourceEvent> listener) {
+        resourceListeners.add(Objects.requireNonNull(listener, "listener"));
         return this;
     }
 
@@ -142,6 +172,22 @@ public final class QQBot implements AutoCloseable {
             for (Consumer<QQMessageEvent> listener : messageListeners) {
                 invoke(() -> listener.accept(message));
             }
+        }
+        if (QQInteractionEvent.supports(event.type())) {
+            QQInteractionEvent interaction = QQInteractionEvent.from(this, event);
+            interactionListeners.forEach(listener -> invoke(() -> listener.accept(interaction)));
+        }
+        if (QQRelationshipEvent.supports(event.type())) {
+            QQRelationshipEvent relationship = QQRelationshipEvent.from(event);
+            relationshipListeners.forEach(listener -> invoke(() -> listener.accept(relationship)));
+        }
+        if (QQMessageStatusEvent.supports(event.type())) {
+            QQMessageStatusEvent status = QQMessageStatusEvent.from(event);
+            messageStatusListeners.forEach(listener -> invoke(() -> listener.accept(status)));
+        }
+        if (QQResourceEvent.supports(event.type())) {
+            QQResourceEvent resource = QQResourceEvent.from(event);
+            resourceListeners.forEach(listener -> invoke(() -> listener.accept(resource)));
         }
     }
 

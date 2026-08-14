@@ -39,7 +39,16 @@
 .shard(0, 4)
 ```
 
-代表当前实例是 4 个分片中的第 0 个。框架不会自动创建其余三个连接；应用必须分别启动 `(1,4)`、`(2,4)`、`(3,4)`。当前事件范围主要面向单聊和群聊，分片能力仅保留协议参数，不应被理解为完整的分片调度器。
+代表当前实例是 4 个分片中的第 0 个。需要自动创建和管理全部分片时使用：
+
+```java
+try (QQBotCluster cluster = QQBotCluster.create(config, 4)) {
+    cluster.onEvent(System.out::println);
+    cluster.startWebSocket().join();
+}
+```
+
+`QQBotCluster` 会为每个分片复制配置并设置正确的 `(shardId, shardCount)`，统一启动和关闭连接。
 
 ## 沙箱和代理环境
 

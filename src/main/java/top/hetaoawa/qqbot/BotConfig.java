@@ -108,6 +108,22 @@ public final class BotConfig {
         return userAgent;
     }
 
+    public Builder toBuilder() {
+        return builder()
+                .appId(appId)
+                .clientSecret(clientSecret)
+                .apiBaseUri(apiBaseUri)
+                .accessTokenUri(accessTokenUri)
+                .intents(intents)
+                .shard(shardId, shardCount)
+                .connectTimeout(connectTimeout)
+                .reconnectInitialDelay(reconnectInitialDelay)
+                .reconnectMaxDelay(reconnectMaxDelay)
+                .webhookAddress(webhookHost, webhookPort)
+                .webhookPath(webhookPath)
+                .userAgent(userAgent);
+    }
+
     private static String requireText(String value, String name) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(name + " must not be blank");
