@@ -85,6 +85,7 @@ Runtime.getRuntime().addShutdownHook(new Thread(bot::close));
 
 ## 下一步
 
+- 开发独立功能插件：[插件开发快速上手](plugin-quick-start.md)
 - 调整 intents 和网络参数：[配置项](configuration.md)
 - 订阅事件：[事件与消息模型](events.md)
 - 主动发送或回复消息：[发送与回复消息](messages.md)

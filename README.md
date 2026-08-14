@@ -82,6 +82,7 @@ public class Main {
 
 ## 文档
 
+- [插件开发快速上手](docs/plugin-quick-start.md)
 - [入门与运行方式](docs/getting-started.md)
 - [配置项](docs/configuration.md)
 - [事件与消息模型](docs/events.md)
