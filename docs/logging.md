@@ -43,6 +43,18 @@ BotConfig config = BotConfig.builder()
 
 ## 为插件监听器命名
 
+推荐为每个插件创建一个注册作用域，只声明一次插件名称：
+
+```java
+QQBot.Plugin plugin = bot.plugin("hello-plugin");
+plugin.onMessageAsync(message -> message.replyText("hello"));
+plugin.onEvent("READY", event -> System.out.println("ready"));
+plugin.onError(error -> monitoringService.report(error));
+```
+
+框架会自动生成 `hello-plugin.message`、`hello-plugin.event.READY` 和
+`hello-plugin.error` 等名称。同一类监听器重复注册时会追加 `#2`、`#3`。旧的显式命名注册 API 仍然兼容。
+
 同步监听器：
 
 ```java

@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** Entry point for the QQ official bot Java SDK. */
 public final class QQBot implements AutoCloseable {
@@ -63,6 +64,11 @@ public final class QQBot implements AutoCloseable {
 
     public QQOpenApi api() {
         return openApi;
+    }
+
+    /** Creates a registration scope whose listener names are derived from the plugin name. */
+    public Plugin plugin(String pluginName) {
+        return new Plugin(this, pluginName);
     }
 
     public QQBot onEvent(Consumer<QQEvent> listener) {
@@ -197,6 +203,104 @@ public final class QQBot implements AutoCloseable {
                 Objects.requireNonNull(listener, "listener")));
         logger.debug("PLUGIN", "registered error handler=" + handlerName);
         return this;
+    }
+
+    /** Listener registration scope for one plugin. */
+    public static final class Plugin {
+        private final QQBot bot;
+        private final String name;
+        private final Map<String, AtomicInteger> handlerCounts = new ConcurrentHashMap<>();
+
+        private Plugin(QQBot bot, String name) {
+            this.bot = bot;
+            this.name = requireHandlerName(name);
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public Plugin onEvent(Consumer<QQEvent> listener) {
+            bot.onEventNamed(handler("event"), listener);
+            return this;
+        }
+
+        public Plugin onEventAsync(Function<QQEvent, ? extends CompletionStage<?>> listener) {
+            bot.onEventAsync(handler("event"), listener);
+            return this;
+        }
+
+        public Plugin onEvent(String type, Consumer<QQEvent> listener) {
+            bot.onEvent(type, handler("event." + type), listener);
+            return this;
+        }
+
+        public Plugin onEventAsync(String type, Function<QQEvent, ? extends CompletionStage<?>> listener) {
+            bot.onEventAsync(type, handler("event." + type), listener);
+            return this;
+        }
+
+        public Plugin onMessage(Consumer<QQMessageEvent> listener) {
+            bot.onMessage(handler("message"), listener);
+            return this;
+        }
+
+        public Plugin onMessageAsync(Function<QQMessageEvent, ? extends CompletionStage<?>> listener) {
+            bot.onMessageAsync(handler("message"), listener);
+            return this;
+        }
+
+        public Plugin onInteraction(Consumer<QQInteractionEvent> listener) {
+            bot.onInteraction(handler("interaction"), listener);
+            return this;
+        }
+
+        public Plugin onInteractionAsync(Function<QQInteractionEvent, ? extends CompletionStage<?>> listener) {
+            bot.onInteractionAsync(handler("interaction"), listener);
+            return this;
+        }
+
+        public Plugin onRelationship(Consumer<QQRelationshipEvent> listener) {
+            bot.onRelationship(handler("relationship"), listener);
+            return this;
+        }
+
+        public Plugin onRelationshipAsync(Function<QQRelationshipEvent, ? extends CompletionStage<?>> listener) {
+            bot.onRelationshipAsync(handler("relationship"), listener);
+            return this;
+        }
+
+        public Plugin onMessageStatus(Consumer<QQMessageStatusEvent> listener) {
+            bot.onMessageStatus(handler("message-status"), listener);
+            return this;
+        }
+
+        public Plugin onMessageStatusAsync(Function<QQMessageStatusEvent, ? extends CompletionStage<?>> listener) {
+            bot.onMessageStatusAsync(handler("message-status"), listener);
+            return this;
+        }
+
+        public Plugin onResource(Consumer<QQResourceEvent> listener) {
+            bot.onResource(handler("resource"), listener);
+            return this;
+        }
+
+        public Plugin onResourceAsync(Function<QQResourceEvent, ? extends CompletionStage<?>> listener) {
+            bot.onResourceAsync(handler("resource"), listener);
+            return this;
+        }
+
+        public Plugin onError(Consumer<Throwable> listener) {
+            bot.onError(handler("error"), listener);
+            return this;
+        }
+
+        private String handler(String kind) {
+            int occurrence = handlerCounts
+                    .computeIfAbsent(kind, ignored -> new AtomicInteger())
+                    .incrementAndGet();
+            return name + "." + kind + (occurrence == 1 ? "" : "#" + occurrence);
+        }
     }
 
     /** Starts a reconnecting WebSocket Gateway client. The future completes after READY. */

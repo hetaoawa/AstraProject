@@ -24,7 +24,7 @@ class LoggingTest {
                     .build();
             CompletableFuture<Void> pluginWork = new CompletableFuture<>();
             try (QQBot bot = QQBot.create(config)) {
-                bot.onMessageAsync("hello-plugin", ignored -> pluginWork);
+                bot.plugin("hello-plugin").onMessageAsync(ignored -> pluginWork);
                 var data = JsonNodeFactory.instance.objectNode()
                         .put("id", "message-1").put("content", "/hello");
                 data.putObject("author").put("user_openid", "user-1");
@@ -32,11 +32,11 @@ class LoggingTest {
 
                 String beforeCompletion = bytes.toString(StandardCharsets.UTF_8);
                 assertTrue(beforeCompletion.contains("received type=C2C_MESSAGE_CREATE id=event-1"));
-                assertTrue(beforeCompletion.contains("captured handler=hello-plugin kind=message"));
-                assertFalse(beforeCompletion.contains("completed handler=hello-plugin"));
+                assertTrue(beforeCompletion.contains("captured handler=hello-plugin.message kind=message"));
+                assertFalse(beforeCompletion.contains("completed handler=hello-plugin.message"));
 
                 pluginWork.complete(null);
-                assertTrue(bytes.toString(StandardCharsets.UTF_8).contains("completed handler=hello-plugin"));
+                assertTrue(bytes.toString(StandardCharsets.UTF_8).contains("completed handler=hello-plugin.message"));
             }
         } finally {
             System.setOut(original);

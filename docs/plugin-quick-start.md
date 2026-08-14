@@ -122,7 +122,8 @@ public final class HelloPlugin implements BotPlugin {
 
     @Override
     public void register(QQBot bot) {
-        bot.onMessageAsync(name(), message -> {
+        QQBot.Plugin plugin = bot.plugin(name());
+        plugin.onMessageAsync(message -> {
             String content = message.content();
             if (content == null || !content.trim().equalsIgnoreCase("/hello")) {
                 return CompletableFuture.completedFuture(null);
