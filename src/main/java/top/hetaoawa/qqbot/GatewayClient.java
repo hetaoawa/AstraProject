@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,6 +26,7 @@ final class GatewayClient implements AutoCloseable {
     private final HttpApiClient api;
     private final HttpClient httpClient;
     private final AstraLogger logger;
+    private final Executor httpExecutor;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "qqbot-gateway-scheduler");
         thread.setDaemon(true);
@@ -43,12 +45,13 @@ final class GatewayClient implements AutoCloseable {
     private CompletableFuture<Void> readyFuture = new CompletableFuture<>();
 
     GatewayClient(QQBot bot, BotConfig config, HttpApiClient api, HttpClient httpClient,
-                  AstraLogger logger) {
+                  AstraLogger logger, Executor httpExecutor) {
         this.bot = bot;
         this.config = config;
         this.api = api;
         this.httpClient = httpClient;
         this.logger = logger;
+        this.httpExecutor = httpExecutor;
         this.reconnectDelayMillis = config.reconnectInitialDelay().toMillis();
     }
 
@@ -90,7 +93,7 @@ final class GatewayClient implements AutoCloseable {
                 report(error);
                 scheduleReconnect();
             }
-        });
+        }, httpExecutor);
     }
 
     private void handleText(String text, boolean last) {

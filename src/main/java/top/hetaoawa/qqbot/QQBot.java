@@ -16,6 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
@@ -26,6 +28,7 @@ public final class QQBot implements AutoCloseable {
 
     private final BotConfig config;
     private final HttpClient httpClient;
+    private final ExecutorService httpExecutor;
     private final AccessTokenManager tokenManager;
     private final HttpApiClient api;
     private final GatewayClient gateway;
@@ -45,16 +48,23 @@ public final class QQBot implements AutoCloseable {
     private QQBot(BotConfig config) {
         this.config = Objects.requireNonNull(config, "config");
         this.logger = new AstraLogger(config);
+        AtomicInteger httpThreadId = new AtomicInteger();
+        this.httpExecutor = Executors.newFixedThreadPool(config.httpExecutorThreads(), task -> {
+            Thread thread = new Thread(task, "astraqqbot-http-" + config.shardId()
+                    + "-" + httpThreadId.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        });
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(config.connectTimeout())
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
         this.tokenManager = new AccessTokenManager(config, httpClient, logger);
-        this.api = new HttpApiClient(config, httpClient, tokenManager, logger);
+        this.api = new HttpApiClient(config, httpClient, tokenManager, logger, httpExecutor);
         this.openApi = new QQOpenApi(api, config.appId());
-        this.gateway = new GatewayClient(this, config, api, httpClient, logger);
+        this.gateway = new GatewayClient(this, config, api, httpClient, logger, httpExecutor);
         logger.info("BOT", "created shard=" + config.shardId() + "/" + config.shardCount()
-                + " intents=" + config.intents());
+                + " intents=" + config.intents() + " httpThreads=" + config.httpExecutorThreads());
     }
 
     /**
@@ -780,6 +790,7 @@ public final class QQBot implements AutoCloseable {
             webhook.close();
             webhook = null;
         }
+        httpExecutor.shutdownNow();
         logger.info("BOT", "closed shard=" + config.shardId() + "/" + config.shardCount());
     }
 }

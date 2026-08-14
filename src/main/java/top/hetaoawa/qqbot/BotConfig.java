@@ -17,6 +17,7 @@ public final class BotConfig {
     private final int shardId;
     private final int shardCount;
     private final Duration connectTimeout;
+    private final int httpExecutorThreads;
     private final Duration reconnectInitialDelay;
     private final Duration reconnectMaxDelay;
     private final String webhookHost;
@@ -37,6 +38,7 @@ public final class BotConfig {
         this.shardId = builder.shardId;
         this.shardCount = builder.shardCount;
         this.connectTimeout = positive(builder.connectTimeout, "connectTimeout");
+        this.httpExecutorThreads = builder.httpExecutorThreads;
         this.reconnectInitialDelay = positive(builder.reconnectInitialDelay, "reconnectInitialDelay");
         this.reconnectMaxDelay = positive(builder.reconnectMaxDelay, "reconnectMaxDelay");
         this.webhookHost = requireText(builder.webhookHost, "webhookHost");
@@ -53,6 +55,9 @@ public final class BotConfig {
         }
         if (webhookPort < 1 || webhookPort > 65535) {
             throw new IllegalArgumentException("webhookPort must be between 1 and 65535");
+        }
+        if (httpExecutorThreads < 1) {
+            throw new IllegalArgumentException("httpExecutorThreads must be positive");
         }
         if (reconnectMaxDelay.compareTo(reconnectInitialDelay) < 0) {
             throw new IllegalArgumentException("reconnectMaxDelay must not be smaller than reconnectInitialDelay");
@@ -102,6 +107,11 @@ public final class BotConfig {
     /** 返回 HTTP 和 WebSocket 建连超时时间。 */
     public Duration connectTimeout() {
         return connectTimeout;
+    }
+
+    /** 返回执行阻塞 HTTP 请求的专用工作线程数。 */
+    public int httpExecutorThreads() {
+        return httpExecutorThreads;
     }
 
     /** 返回 Gateway 首次重连等待时间。 */
@@ -164,6 +174,7 @@ public final class BotConfig {
                 .intents(intents)
                 .shard(shardId, shardCount)
                 .connectTimeout(connectTimeout)
+                .httpExecutorThreads(httpExecutorThreads)
                 .reconnectInitialDelay(reconnectInitialDelay)
                 .reconnectMaxDelay(reconnectMaxDelay)
                 .webhookAddress(webhookHost, webhookPort)
@@ -228,6 +239,7 @@ public final class BotConfig {
         private int shardId;
         private int shardCount = 1;
         private Duration connectTimeout = Duration.ofSeconds(20);
+        private int httpExecutorThreads = 4;
         private Duration reconnectInitialDelay = Duration.ofSeconds(2);
         private Duration reconnectMaxDelay = Duration.ofSeconds(30);
         private String webhookHost = "127.0.0.1";
@@ -289,6 +301,12 @@ public final class BotConfig {
         /** 设置 HTTP 和 WebSocket 建连超时。 */
         public Builder connectTimeout(Duration connectTimeout) {
             this.connectTimeout = connectTimeout;
+            return this;
+        }
+
+        /** 设置每个 Bot 用于阻塞 HTTP 请求的专用工作线程数。 */
+        public Builder httpExecutorThreads(int httpExecutorThreads) {
+            this.httpExecutorThreads = httpExecutorThreads;
             return this;
         }
 

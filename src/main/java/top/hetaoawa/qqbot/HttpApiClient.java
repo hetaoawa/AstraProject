@@ -9,6 +9,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.Map;
 
 final class HttpApiClient {
@@ -18,13 +19,15 @@ final class HttpApiClient {
     private final HttpClient httpClient;
     private final AccessTokenManager tokenManager;
     private final AstraLogger logger;
+    private final Executor httpExecutor;
 
     HttpApiClient(BotConfig config, HttpClient httpClient, AccessTokenManager tokenManager,
-                  AstraLogger logger) {
+                  AstraLogger logger, Executor httpExecutor) {
         this.config = config;
         this.httpClient = httpClient;
         this.tokenManager = tokenManager;
         this.logger = logger;
+        this.httpExecutor = httpExecutor;
     }
 
     JsonNode get(String path) throws IOException, InterruptedException {
@@ -41,7 +44,7 @@ final class HttpApiClient {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
+        }, httpExecutor);
     }
 
     CompletableFuture<JsonNode> postAsync(String path, JsonNode body) {
@@ -63,7 +66,7 @@ final class HttpApiClient {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
+        }, httpExecutor);
     }
 
     CompletableFuture<Void> uploadPresignedPartAsync(URI uri, byte[] data) {

@@ -11,6 +11,7 @@
 | `intents(long)` | `Intents.PRIVATE_AND_GROUP` | Gateway 订阅位图 |
 | `shard(int id, int count)` | `0, 1` | 当前实例的分片编号和总数 |
 | `connectTimeout(Duration)` | 20 秒 | HTTP/WebSocket 建连超时 |
+| `httpExecutorThreads(int)` | `4` | 每个 Bot 执行阻塞 HTTP 请求的专用线程数 |
 | `reconnectInitialDelay(Duration)` | 2 秒 | Gateway 首次重连等待时间 |
 | `reconnectMaxDelay(Duration)` | 30 秒 | Gateway 指数退避上限 |
 | `webhookAddress(String, int)` | `127.0.0.1:8080` | 内置 HTTP 服务器监听地址 |
@@ -72,5 +73,6 @@ try (QQBotCluster cluster = QQBotCluster.create(config, 4)) {
 - AppID、AppSecret、Webhook host/path、User-Agent 不能为空；
 - `shardCount` 必须大于 0，`shardId` 必须在有效范围内；
 - Webhook 端口必须位于 `1..65535`；
+- HTTP 专用执行器线程数必须大于 0；
 - 所有 Duration 必须为正数；
 - 最大重连等待时间不得小于初始等待时间。
