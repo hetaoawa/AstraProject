@@ -2,7 +2,7 @@
 
 面向 Java 17+ 的 QQ 官方机器人轻量开发框架，封装 QQ Bot API v2 的鉴权、WebSocket Gateway、Webhook 回调以及单聊/群聊消息收发。
 
-> 当前为 `0.1.0-SNAPSHOT`。暂不包含频道消息收发和频道私信；其他管理接口仍可能调整。
+> 当前版本为 `0.1.0`。暂不包含频道消息收发和频道私信；其他管理接口仍可能调整。
 
 ## 已实现
 
@@ -28,13 +28,15 @@
 
 ### 1. 引入项目
 
-项目尚未发布到 Maven Central。开发期间可先安装到本地仓库：
+`0.1.0` 暂不发布到 Maven Central，发布代码通过 [GitHub](https://github.com/hetaoawa/AstraProject) 提供。请先下载 `v0.1.0` 标签对应的源码，再安装到本地 Maven 仓库：
 
 ```bash
+git clone --branch v0.1.0 https://github.com/hetaoawa/AstraProject.git
+cd AstraProject
 mvn clean install
 ```
 
-构建会同时安装主 JAR、源码 JAR 和 Javadoc JAR。IDEA 重新加载 Maven 依赖后，输入框架类和方法即可显示中文文档与参数说明；如果没有自动关联，可在 Maven 面板执行 **Download Sources**，或在 External Libraries 中手动关联 `AstraQQBot-0.1.0-SNAPSHOT-sources.jar`。
+构建会同时安装 `AstraQQBot-0.1.0.jar`、源码 JAR 和 Javadoc JAR。IDEA 重新加载 Maven 依赖后，输入框架类和方法即可显示中文文档与参数说明；如果没有自动关联，可在 Maven 面板执行 **Download Sources**，或在 External Libraries 中手动关联 `AstraQQBot-0.1.0-sources.jar`。
 
 然后在应用中引入：
 
@@ -42,7 +44,7 @@ mvn clean install
 <dependency>
     <groupId>top.hetaoawa</groupId>
     <artifactId>AstraQQBot</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 

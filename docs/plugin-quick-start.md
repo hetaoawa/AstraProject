@@ -25,7 +25,7 @@ mvn clean install
 这会把以下制品安装到本地 Maven 仓库：
 
 ```text
-top.hetaoawa:AstraQQBot:0.1.0-SNAPSHOT
+top.hetaoawa:AstraQQBot:0.1.0
 ```
 
 ## 2. 创建插件项目
@@ -63,7 +63,7 @@ my-astra-bot/
         <dependency>
             <groupId>top.hetaoawa</groupId>
             <artifactId>AstraQQBot</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.0</version>
         </dependency>
     </dependencies>
 
