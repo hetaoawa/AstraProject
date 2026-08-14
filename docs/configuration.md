@@ -18,6 +18,8 @@
 | `userAgent(String)` | `AstraQQBot/0.1.0` | HTTP User-Agent |
 | `logLevel(BotLogLevel)` | `INFO` | 框架控制台日志阈值 |
 | `logEventPayloads(boolean)` | `false` | 仅在 TRACE 时允许输出原始事件载荷 |
+| `commandPrefixes(String...)` | `/` | 命令前缀，可配置多个 |
+| `commandSeparator(String)` | 空格 | 命令与参数的拆分分隔符 |
 
 ## Intents
 

@@ -17,6 +17,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 /** Entry point for the QQ official bot Java SDK. */
 public final class QQBot implements AutoCloseable {
@@ -36,6 +38,7 @@ public final class QQBot implements AutoCloseable {
     private final List<NamedHandler<QQMessageStatusEvent>> messageStatusListeners = new CopyOnWriteArrayList<>();
     private final List<NamedHandler<QQResourceEvent>> resourceListeners = new CopyOnWriteArrayList<>();
     private final List<NamedErrorHandler> errorListeners = new CopyOnWriteArrayList<>();
+    private final List<CommandHandler> commandListeners = new CopyOnWriteArrayList<>();
     private final Map<String, List<NamedHandler<QQEvent>>> typedListeners = new ConcurrentHashMap<>();
     private volatile WebhookServer webhook;
 
@@ -194,6 +197,25 @@ public final class QQBot implements AutoCloseable {
         return this;
     }
 
+    private QQBot onCommand(String handlerName, String command, int priority,
+                            boolean continuePropagation, Consumer<QQCommandEvent> listener) {
+        commandListeners.add(new CommandHandler(requireHandlerName(handlerName), normalizeCommand(command),
+                priority, continuePropagation, syncAction(listener)));
+        logger.debug("PLUGIN", "registered command handler=" + handlerName + " command=" + command
+                + " priority=" + priority + " continue=" + continuePropagation);
+        return this;
+    }
+
+    private QQBot onCommandAsync(String handlerName, String command, int priority,
+                                 boolean continuePropagation,
+                                 Function<QQCommandEvent, ? extends CompletionStage<?>> listener) {
+        commandListeners.add(new CommandHandler(requireHandlerName(handlerName), normalizeCommand(command),
+                priority, continuePropagation, asyncAction(listener)));
+        logger.debug("PLUGIN", "registered async command handler=" + handlerName + " command=" + command
+                + " priority=" + priority + " continue=" + continuePropagation);
+        return this;
+    }
+
     public QQBot onError(Consumer<Throwable> listener) {
         return onError(autoName(listener), listener);
     }
@@ -247,6 +269,18 @@ public final class QQBot implements AutoCloseable {
 
         public Plugin onMessageAsync(Function<QQMessageEvent, ? extends CompletionStage<?>> listener) {
             bot.onMessageAsync(handler("message"), listener);
+            return this;
+        }
+
+        public Plugin onCommand(String command, int priority, boolean continuePropagation,
+                                Consumer<QQCommandEvent> listener) {
+            bot.onCommand(handler("command." + command), command, priority, continuePropagation, listener);
+            return this;
+        }
+
+        public Plugin onCommandAsync(String command, int priority, boolean continuePropagation,
+                                     Function<QQCommandEvent, ? extends CompletionStage<?>> listener) {
+            bot.onCommandAsync(handler("command." + command), command, priority, continuePropagation, listener);
             return this;
         }
 
@@ -380,6 +414,7 @@ public final class QQBot implements AutoCloseable {
                 invokeHandler("message", event, listener, message);
                 captured++;
             }
+            captured += dispatchCommandListeners(event, message);
         }
         if (QQInteractionEvent.supports(event.type())) {
             QQInteractionEvent interaction = QQInteractionEvent.from(this, event);
@@ -414,6 +449,95 @@ public final class QQBot implements AutoCloseable {
 
     void reportError(Throwable error) {
         reportError("BOT", error);
+    }
+
+    private int dispatchCommandListeners(QQEvent event, QQMessageEvent message) {
+        ParsedCommand parsed = parseCommand(message.content());
+        if (parsed == null) {
+            return 0;
+        }
+        List<CommandHandler> matching = commandListeners.stream()
+                .filter(listener -> listener.command().equalsIgnoreCase(parsed.command()))
+                .sorted((left, right) -> Integer.compare(right.priority(), left.priority()))
+                .toList();
+        if (matching.isEmpty()) {
+            return 0;
+        }
+        QQCommandEvent commandEvent = new QQCommandEvent(message, parsed.prefix(), parsed.tokens());
+        logger.debug("COMMAND", "matched prefix=" + parsed.prefix() + " command=" + parsed.command()
+                + " arguments=" + commandEvent.arguments().size() + " listeners=" + matching.size());
+
+        AtomicBoolean stopped = new AtomicBoolean();
+        CompletionStage<Void> chain = CompletableFuture.completedFuture(null);
+        for (CommandHandler listener : matching) {
+            chain = chain.thenCompose(ignored -> {
+                if (stopped.get()) {
+                    return CompletableFuture.completedFuture(null);
+                }
+                return invokeCommandHandler(event, listener, commandEvent)
+                        .thenRun(() -> stopped.set(!listener.continuePropagation()));
+            });
+        }
+        chain.whenComplete((ignored, error) -> {
+            if (error != null) {
+                logger.error("COMMAND", "dispatch failed command=" + parsed.command(), unwrap(error));
+            }
+        });
+        return matching.size();
+    }
+
+    private CompletionStage<Void> invokeCommandHandler(QQEvent event, CommandHandler handler,
+                                                       QQCommandEvent commandEvent) {
+        long started = System.nanoTime();
+        logger.debug("PLUGIN", "captured handler=" + handler.name() + " kind=command command="
+                + handler.command() + " eventType=" + event.type() + " eventId=" + event.id()
+                + " priority=" + handler.priority());
+        try {
+            CompletionStage<?> completion = handler.action().apply(commandEvent);
+            if (completion == null) {
+                logHandlerCompleted("command", event, handler.name(), started);
+                return CompletableFuture.completedFuture(null);
+            }
+            return completion.handle((ignored, error) -> {
+                if (error == null) {
+                    logHandlerCompleted("command", event, handler.name(), started);
+                } else {
+                    logger.error("PLUGIN", "failed handler=" + handler.name() + " kind=command"
+                            + " command=" + handler.command() + " eventType=" + event.type()
+                            + " eventId=" + event.id() + " elapsedMs=" + elapsedMillis(started), unwrap(error));
+                }
+                return null;
+            });
+        } catch (Throwable error) {
+            logger.error("PLUGIN", "failed handler=" + handler.name() + " kind=command"
+                    + " command=" + handler.command() + " eventType=" + event.type()
+                    + " eventId=" + event.id() + " elapsedMs=" + elapsedMillis(started), error);
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    private ParsedCommand parseCommand(String content) {
+        if (content == null || content.isBlank()) {
+            return null;
+        }
+        String input = content.stripLeading();
+        String prefix = config.commandPrefixes().stream()
+                .filter(input::startsWith)
+                .findFirst()
+                .orElse(null);
+        if (prefix == null) {
+            return null;
+        }
+        String body = input.substring(prefix.length()).strip();
+        if (body.isBlank()) {
+            return null;
+        }
+        List<String> tokens = Pattern.compile(Pattern.quote(config.commandSeparator()))
+                .splitAsStream(body)
+                .map(String::strip)
+                .filter(token -> !token.isBlank())
+                .toList();
+        return tokens.isEmpty() ? null : new ParsedCommand(prefix, tokens.get(0), tokens);
     }
 
     void reportError(String component, Throwable error) {
@@ -522,6 +646,28 @@ public final class QQBot implements AutoCloseable {
         return handlerName;
     }
 
+    private static String normalizeCommand(String command) {
+        String value = requireHandlerName(command);
+        if (value.contains(" ") || value.contains("\t") || value.contains("\r") || value.contains("\n")) {
+            throw new IllegalArgumentException("command must be a single token");
+        }
+        return value;
+    }
+
+    private static Function<QQCommandEvent, ? extends CompletionStage<?>> syncAction(
+            Consumer<QQCommandEvent> listener) {
+        Objects.requireNonNull(listener, "listener");
+        return value -> {
+            listener.accept(value);
+            return CompletableFuture.completedFuture(null);
+        };
+    }
+
+    private static Function<QQCommandEvent, ? extends CompletionStage<?>> asyncAction(
+            Function<QQCommandEvent, ? extends CompletionStage<?>> listener) {
+        return Objects.requireNonNull(listener, "listener");
+    }
+
     private static <T> NamedHandler<T> syncHandler(String name, Consumer<T> listener) {
         Objects.requireNonNull(listener, "listener");
         return new NamedHandler<>(requireHandlerName(name), value -> {
@@ -538,6 +684,13 @@ public final class QQBot implements AutoCloseable {
     }
 
     private record NamedHandler<T>(String name, Function<T, ? extends CompletionStage<?>> action) {
+    }
+
+    private record CommandHandler(String name, String command, int priority, boolean continuePropagation,
+                                  Function<QQCommandEvent, ? extends CompletionStage<?>> action) {
+    }
+
+    private record ParsedCommand(String prefix, String command, List<String> tokens) {
     }
 
     private record NamedErrorHandler(String name, Consumer<Throwable> action) {

@@ -2,6 +2,9 @@ package top.hetaoawa.qqbot;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /** Immutable configuration for a QQ official bot client. */
@@ -22,6 +25,8 @@ public final class BotConfig {
     private final String userAgent;
     private final BotLogLevel logLevel;
     private final boolean logEventPayloads;
+    private final List<String> commandPrefixes;
+    private final String commandSeparator;
 
     private BotConfig(Builder builder) {
         this.appId = requireText(builder.appId, "appId");
@@ -40,6 +45,8 @@ public final class BotConfig {
         this.userAgent = requireText(builder.userAgent, "userAgent");
         this.logLevel = Objects.requireNonNull(builder.logLevel, "logLevel");
         this.logEventPayloads = builder.logEventPayloads;
+        this.commandPrefixes = normalizePrefixes(builder.commandPrefixes);
+        this.commandSeparator = requireNonEmpty(builder.commandSeparator, "commandSeparator");
 
         if (shardCount < 1 || shardId < 0 || shardId >= shardCount) {
             throw new IllegalArgumentException("shardId must be in [0, shardCount), shardCount must be positive");
@@ -120,6 +127,14 @@ public final class BotConfig {
         return logEventPayloads;
     }
 
+    public List<String> commandPrefixes() {
+        return commandPrefixes;
+    }
+
+    public String commandSeparator() {
+        return commandSeparator;
+    }
+
     public Builder toBuilder() {
         return builder()
                 .appId(appId)
@@ -135,12 +150,21 @@ public final class BotConfig {
                 .webhookPath(webhookPath)
                 .userAgent(userAgent)
                 .logLevel(logLevel)
-                .logEventPayloads(logEventPayloads);
+                .logEventPayloads(logEventPayloads)
+                .commandPrefixes(commandPrefixes)
+                .commandSeparator(commandSeparator);
     }
 
     private static String requireText(String value, String name) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(name + " must not be blank");
+        }
+        return value;
+    }
+
+    private static String requireNonEmpty(String value, String name) {
+        if (value == null || value.isEmpty()) {
+            throw new IllegalArgumentException(name + " must not be empty");
         }
         return value;
     }
@@ -156,6 +180,22 @@ public final class BotConfig {
     private static String normalizePath(String value) {
         String path = requireText(value, "webhookPath");
         return path.startsWith("/") ? path : "/" + path;
+    }
+
+    private static List<String> normalizePrefixes(List<String> values) {
+        Objects.requireNonNull(values, "commandPrefixes");
+        if (values.isEmpty()) {
+            throw new IllegalArgumentException("commandPrefixes must not be empty");
+        }
+        List<String> prefixes = new ArrayList<>();
+        for (String value : values) {
+            String prefix = requireText(value, "commandPrefix");
+            if (!prefixes.contains(prefix)) {
+                prefixes.add(prefix);
+            }
+        }
+        prefixes.sort((left, right) -> Integer.compare(right.length(), left.length()));
+        return List.copyOf(prefixes);
     }
 
     public static final class Builder {
@@ -175,6 +215,8 @@ public final class BotConfig {
         private String userAgent = "AstraQQBot/0.1.0";
         private BotLogLevel logLevel = BotLogLevel.INFO;
         private boolean logEventPayloads;
+        private List<String> commandPrefixes = List.of("/");
+        private String commandSeparator = " ";
 
         public Builder appId(String appId) {
             this.appId = appId;
@@ -254,6 +296,20 @@ public final class BotConfig {
         /** Enables raw event data at TRACE level. Event payloads may contain user content. */
         public Builder logEventPayloads(boolean logEventPayloads) {
             this.logEventPayloads = logEventPayloads;
+            return this;
+        }
+
+        public Builder commandPrefixes(String... commandPrefixes) {
+            return commandPrefixes(Arrays.asList(commandPrefixes));
+        }
+
+        public Builder commandPrefixes(List<String> commandPrefixes) {
+            this.commandPrefixes = commandPrefixes;
+            return this;
+        }
+
+        public Builder commandSeparator(String commandSeparator) {
+            this.commandSeparator = commandSeparator;
             return this;
         }
 
