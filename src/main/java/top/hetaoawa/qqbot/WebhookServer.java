@@ -14,26 +14,28 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 import java.util.concurrent.Executors;
-import java.util.logging.Logger;
 
 /**
- * Minimal JDK HTTP callback server. Put it behind an HTTPS reverse proxy in production;
- * QQ requires the configured callback endpoint to be HTTPS.
+ * 基于 JDK 的轻量 HTTP 回调服务器。生产环境应放在 HTTPS 反向代理之后，
+ * 因为 QQ 要求配置的回调地址使用 HTTPS。
  */
+/** 用于 QQ Webhook 回调和验证的内置 HTTP 服务器。 */
 public final class WebhookServer implements AutoCloseable {
-    private static final Logger LOG = Logger.getLogger(WebhookServer.class.getName());
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
 
     private final QQBot bot;
     private final BotConfig config;
+    private final AstraLogger logger;
     private HttpServer server;
 
-    WebhookServer(QQBot bot, BotConfig config) {
+    WebhookServer(QQBot bot, BotConfig config, AstraLogger logger) {
         this.bot = bot;
         this.config = config;
+        this.logger = logger;
     }
 
+    /** 在配置的地址开始监听并返回当前服务器。 */
     public synchronized WebhookServer start() throws IOException {
         if (server != null) {
             return this;
@@ -46,17 +48,21 @@ public final class WebhookServer implements AutoCloseable {
             return thread;
         }));
         server.start();
-        LOG.info(() -> "QQ Bot Webhook listening on " + config.webhookHost() + ":"
+        logger.info("WEBHOOK", "listening address=" + config.webhookHost() + ":"
                 + config.webhookPort() + config.webhookPath());
         return this;
     }
 
+    /** 返回内置 HTTP 服务器当前是否正在运行。 */
     public synchronized boolean isRunning() {
         return server != null;
     }
 
     private void handle(HttpExchange exchange) throws IOException {
+        long started = System.nanoTime();
         try (exchange) {
+            logger.debug("WEBHOOK", "request method=" + exchange.getRequestMethod()
+                    + " path=" + exchange.getRequestURI().getPath());
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 exchange.getResponseHeaders().set("Allow", "POST");
                 write(exchange, 405, MAPPER.createObjectNode().put("message", "Method Not Allowed"));
@@ -74,10 +80,12 @@ public final class WebhookServer implements AutoCloseable {
             }
             int op = payload.path("op").asInt(-1);
             if (!isSignatureValid(exchange, body, op == 13)) {
+                logger.warn("WEBHOOK", "signature rejected op=" + op);
                 write(exchange, 401, MAPPER.createObjectNode().put("message", "Invalid callback signature"));
                 return;
             }
             if (op == 13) {
+                logger.info("WEBHOOK", "validation request accepted");
                 write(exchange, 200, validationResponse(payload.path("d")));
             } else {
                 QQEvent event = new QQEvent(
@@ -90,10 +98,12 @@ public final class WebhookServer implements AutoCloseable {
                 );
                 ObjectNode ack = MAPPER.createObjectNode().put("op", 12);
                 write(exchange, 200, ack);
+                logger.debug("WEBHOOK", "event acknowledged type=" + event.type() + " id=" + event.id()
+                        + " elapsedMs=" + elapsedMillis(started));
                 bot.dispatch(event);
             }
         } catch (Exception error) {
-            bot.reportError(error);
+            bot.reportError("WEBHOOK", error);
             if (exchange.getResponseBody() != null) {
                 try {
                     write(exchange, 500, MAPPER.createObjectNode().put("message", "Internal Server Error"));
@@ -184,11 +194,17 @@ public final class WebhookServer implements AutoCloseable {
         exchange.getResponseBody().write(bytes);
     }
 
+    /** 停止正在运行的内置 HTTP 服务器。 */
     @Override
     public synchronized void close() {
         if (server != null) {
             server.stop(0);
             server = null;
+            logger.info("WEBHOOK", "stopped");
         }
+    }
+
+    private static long elapsedMillis(long started) {
+        return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
     }
 }

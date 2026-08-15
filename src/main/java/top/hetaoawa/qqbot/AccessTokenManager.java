@@ -15,18 +15,23 @@ final class AccessTokenManager {
 
     private final BotConfig config;
     private final HttpClient httpClient;
+    private final AstraLogger logger;
     private String token;
     private Instant expiresAt = Instant.MIN;
 
-    AccessTokenManager(BotConfig config, HttpClient httpClient) {
+    AccessTokenManager(BotConfig config, HttpClient httpClient, AstraLogger logger) {
         this.config = config;
         this.httpClient = httpClient;
+        this.logger = logger;
     }
 
     synchronized String get() throws IOException, InterruptedException {
         if (token != null && Instant.now().plusSeconds(60).isBefore(expiresAt)) {
+            logger.trace("AUTH", "using cached access token expiresAt=" + expiresAt);
             return token;
         }
+        logger.debug("AUTH", "requesting access token");
+        long started = System.nanoTime();
         ObjectNode body = MAPPER.createObjectNode()
                 .put("appId", config.appId())
                 .put("clientSecret", config.clientSecret());
@@ -35,20 +40,30 @@ final class AccessTokenManager {
                 .header("User-Agent", config.userAgent())
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
                 .build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response;
+        try {
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException error) {
+            logger.error("AUTH", "access token transport failed elapsedMs=" + elapsedMillis(started), error);
+            throw error;
+        }
         JsonNode result = parse(response.body());
         if (response.statusCode() / 100 != 2 || result.path("access_token").asText().isBlank()) {
+            logger.warn("AUTH", "access token request failed status=" + response.statusCode());
             throw apiException(response.statusCode(), result, "Unable to obtain access token");
         }
         token = result.path("access_token").asText();
         long expiresIn = result.path("expires_in").asLong(7200);
         expiresAt = Instant.now().plusSeconds(Math.max(1, expiresIn));
+        logger.debug("AUTH", "access token refreshed status=" + response.statusCode()
+                + " expiresInSeconds=" + expiresIn + " elapsedMs=" + elapsedMillis(started));
         return token;
     }
 
     synchronized void invalidate() {
         token = null;
         expiresAt = Instant.MIN;
+        logger.debug("AUTH", "access token invalidated");
     }
 
     private static JsonNode parse(String body) throws IOException {
@@ -65,5 +80,9 @@ final class AccessTokenManager {
                 body.path("message").asText(fallback),
                 body.path("trace_id").asText(null)
         );
+    }
+
+    private static long elapsedMillis(long started) {
+        return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
     }
 }

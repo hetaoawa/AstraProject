@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-/** Extensible message request. Unknown official fields can be added through {@link #put}. */
+import java.util.Collection;
+import java.util.Map;
+
+/** QQ 消息请求体的可扩展构建器，官方新增字段可通过 {@link #put} 和 {@link #set} 添加。 */
 public final class MessagePayload {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final ObjectNode body;
@@ -13,6 +16,12 @@ public final class MessagePayload {
         this.body = body;
     }
 
+    /**
+     * 创建纯文本消息载荷。
+     *
+     * @param content 消息内容；{@code null} 按空字符串处理
+     * @return 新消息载荷
+     */
     public static MessagePayload text(String content) {
         ObjectNode node = MAPPER.createObjectNode();
         node.put("msg_type", 0);
@@ -20,6 +29,12 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
+    /**
+     * 创建 Markdown 消息载荷。
+     *
+     * @param content Markdown 内容；{@code null} 按空字符串处理
+     * @return 新消息载荷
+     */
     public static MessagePayload markdown(String content) {
         ObjectNode node = MAPPER.createObjectNode();
         node.put("msg_type", 2);
@@ -27,6 +42,69 @@ public final class MessagePayload {
         return new MessagePayload(node);
     }
 
+    /**
+     * 使用模板 ID 和参数创建 Markdown 自定义模板载荷。
+     *
+     * @param templateId 自定义模板 ID
+     * @param parameters 模板参数；可以为 {@code null}
+     * @return 新消息载荷
+     */
+    public static MessagePayload markdownTemplate(String templateId,
+                                                  Map<String, ? extends Collection<String>> parameters) {
+        if (templateId == null || templateId.isBlank()) {
+            throw new IllegalArgumentException("templateId must not be blank");
+        }
+        ObjectNode node = MAPPER.createObjectNode().put("msg_type", 2);
+        ObjectNode markdown = node.putObject("markdown").put("custom_template_id", templateId);
+        var params = markdown.putArray("params");
+        if (parameters != null) {
+            parameters.forEach((key, values) -> {
+                ObjectNode parameter = params.addObject().put("key", key);
+                var valueArray = parameter.putArray("values");
+                if (values != null) values.forEach(valueArray::add);
+            });
+        }
+        return new MessagePayload(node);
+    }
+
+    /**
+     * 使用已准备的 {@code file_info} 创建富媒体载荷。
+     *
+     * @param fileInfo 已准备的媒体文件信息
+     * @return 新消息载荷
+     */
+    public static MessagePayload media(String fileInfo) {
+        if (fileInfo == null || fileInfo.isBlank()) {
+            throw new IllegalArgumentException("fileInfo must not be blank");
+        }
+        ObjectNode node = MAPPER.createObjectNode().put("msg_type", 7);
+        node.putObject("media").put("file_info", fileInfo);
+        return new MessagePayload(node);
+    }
+
+    /**
+     * 创建 Ark 模板载荷。
+     *
+     * @param templateId Ark 模板 ID
+     * @param keyValues Ark 键值 JSON 数组
+     * @return 新消息载荷
+     */
+    public static MessagePayload ark(int templateId, JsonNode keyValues) {
+        if (templateId <= 0) throw new IllegalArgumentException("templateId must be positive");
+        if (keyValues == null || !keyValues.isArray()) {
+            throw new IllegalArgumentException("keyValues must be a JSON array");
+        }
+        ObjectNode node = MAPPER.createObjectNode().put("msg_type", 3);
+        node.putObject("ark").put("template_id", templateId).set("kv", keyValues.deepCopy());
+        return new MessagePayload(node);
+    }
+
+    /**
+     * 从已有 JSON 对象创建消息载荷。
+     *
+     * @param body 要复制的 JSON 对象
+     * @return 新消息载荷
+     */
     public static MessagePayload raw(JsonNode body) {
         if (body == null || !body.isObject()) {
             throw new IllegalArgumentException("message body must be a JSON object");
@@ -34,26 +112,100 @@ public final class MessagePayload {
         return new MessagePayload((ObjectNode) body.deepCopy());
     }
 
+    /**
+     * 添加或替换字符串字段。
+     *
+     * @param field 字段名
+     * @param value 字段值
+     * @return 当前载荷
+     */
     public MessagePayload put(String field, String value) {
         body.put(field, value);
         return this;
     }
 
+    /**
+     * 添加或替换数字字段。
+     *
+     * @param field 字段名
+     * @param value 字段值
+     * @return 当前载荷
+     */
     public MessagePayload put(String field, long value) {
         body.put(field, value);
         return this;
     }
 
+    /**
+     * 添加或替换布尔字段。
+     *
+     * @param field 字段名
+     * @param value 字段值
+     * @return 当前载荷
+     */
     public MessagePayload put(String field, boolean value) {
         body.put(field, value);
         return this;
     }
 
+    /**
+     * 添加或替换 JSON 字段。
+     *
+     * @param field 字段名
+     * @param value JSON 字段值
+     * @return 当前载荷
+     */
     public MessagePayload set(String field, JsonNode value) {
         body.set(field, value);
         return this;
     }
 
+    /**
+     * 添加键盘模板引用。
+     *
+     * @param keyboardId 键盘模板 ID
+     * @return 当前载荷
+     */
+    public MessagePayload keyboardTemplate(String keyboardId) {
+        if (keyboardId == null || keyboardId.isBlank()) {
+            throw new IllegalArgumentException("keyboardId must not be blank");
+        }
+        body.putObject("keyboard").put("id", keyboardId);
+        return this;
+    }
+
+    /**
+     * 添加内联键盘内容。
+     *
+     * @param content 键盘 JSON 对象
+     * @return 当前载荷
+     */
+    public MessagePayload keyboardContent(JsonNode content) {
+        if (content == null || !content.isObject()) {
+            throw new IllegalArgumentException("content must be a JSON object");
+        }
+        body.putObject("keyboard").set("content", content.deepCopy());
+        return this;
+    }
+
+    /**
+     * 设置组合回复使用的消息序号。
+     *
+     * @param sequence 大于 0 的消息序号
+     * @return 当前载荷
+     */
+    public MessagePayload messageSequence(int sequence) {
+        if (sequence < 1) throw new IllegalArgumentException("sequence must be positive");
+        body.put("msg_seq", sequence);
+        return this;
+    }
+
+    /**
+     * 根据标准化消息事件添加回复字段。
+     *
+     * @param event 来源消息事件
+     * @return 当前载荷
+     */
     public MessagePayload replyTo(QQMessageEvent event) {
         if (event == null || event.messageId() == null || event.messageId().isBlank()) {
             throw new IllegalArgumentException("event must contain a message id");
@@ -63,6 +215,12 @@ public final class MessagePayload {
         return this;
     }
 
+    /**
+     * 根据原始事件封装添加回复字段。
+     *
+     * @param event 来源事件
+     * @return 当前载荷
+     */
     public MessagePayload eventReplyTo(QQEvent event) {
         if (event == null || event.id() == null || event.id().isBlank()) {
             throw new IllegalArgumentException("event must contain an event id");
@@ -75,6 +233,11 @@ public final class MessagePayload {
         return body.deepCopy();
     }
 
+    /**
+     * 返回该载荷的防御性 JSON 副本。
+     *
+     * @return 载荷 JSON 的深拷贝
+     */
     public JsonNode toJson() {
         return body.deepCopy();
     }

@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Normalized private/group message event with reply helpers. */
+/** 标准化的私聊或群聊消息事件，提供消息字段访问和回复方法。 */
 public final class QQMessageEvent {
     private final QQBot bot;
     private final String eventId;
@@ -71,58 +71,72 @@ public final class QQMessageEvent {
         return new QQMessageEvent(bot, event.id(), event.type(), event.data(), event.raw());
     }
 
+    /** 返回框架事件 ID。 */
     public String eventId() {
         return eventId;
     }
 
+    /** 返回原始 QQ 事件类型。 */
     public String eventType() {
         return eventType;
     }
 
+    /** 返回 QQ 消息 ID。 */
     public String messageId() {
         return messageId;
     }
 
+    /** 返回标准化消息作者。 */
     public QQUser author() {
         return author;
     }
 
+    /** 返回消息文本；非文本消息返回 {@code null}。 */
     public String content() {
         return content;
     }
 
+    /** 返回私聊用户 OpenID；不存在时返回 {@code null}。 */
     public String userOpenId() {
         return userOpenId;
     }
 
+    /** 返回群 OpenID；不存在时返回 {@code null}。 */
     public String groupOpenId() {
         return groupOpenId;
     }
 
+    /** 返回 QQ 消息类型码；不存在时返回 {@code null}。 */
     public Integer messageType() {
         return messageType;
     }
 
+    /** 返回消息时间戳；无法解析时返回 {@code null}。 */
     public Instant timestamp() {
         return timestamp;
     }
 
+    /** 返回标准化消息场景元数据。 */
     public QQMessageScene scene() {
         return scene;
     }
 
+    /** 返回不可变附件列表。 */
     public List<QQAttachment> attachments() {
         return attachments;
     }
 
+    /** 返回原始消息 JSON 载荷。 */
     public JsonNode raw() {
         return raw;
     }
 
+    /** 判断消息是否来自群聊。 */
     public boolean isGroupMessage() {
         return groupOpenId != null && !groupOpenId.isBlank();
     }
 
+    /** 向当前消息发送文本回复。 */
     public java.util.concurrent.CompletableFuture<MessageResponse> replyText(String content) {
         return bot.replyText(this, content);
     }

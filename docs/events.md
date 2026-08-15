@@ -90,3 +90,23 @@ String authToken = message.scene().extension("auth_token");
 - 必要时组合 `eventType()` 和目标 OpenID。
 
 监听器执行过程中抛出的异常会被记录，不会中断后续监听器。业务侧仍应使用 `onError` 和自己的可观测性系统记录失败。
+
+## 扩展事件模型
+
+除消息事件外，框架还提供以下标准化监听器：
+
+```java
+bot.onInteraction(event -> event.respond(0));
+bot.onRelationship(event -> System.out.println(event.eventType()));
+bot.onMessageStatus(event -> System.out.println(event.status()));
+bot.onResource(event -> System.out.println(event.resourceId()));
+```
+
+| 监听器 | 模型 | 覆盖范围 |
+| --- | --- | --- |
+| `onInteraction` | `QQInteractionEvent` | `INTERACTION_CREATE`、Reaction 增删 |
+| `onRelationship` | `QQRelationshipEvent` | 好友、群成员、机器人进退群、消息接收/拒绝状态 |
+| `onMessageStatus` | `QQMessageStatusEvent` | 订阅消息状态和消息审核状态 |
+| `onResource` | `QQResourceEvent` | Guild、Channel、成员、论坛和音频资源事件 |
+
+所有标准化模型仍保留 `data()` 和 `raw()`，新增字段可以在模型升级前直接读取。
