@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-/** 标准化的私聊或群聊消息事件，提供消息字段访问和回复方法。 */
+/** 标准化的 C2C、群聊、文字子频道或频道私信消息事件。 */
 public final class QQMessageEvent {
     private final QQBot bot;
     private final String eventId;
@@ -16,6 +16,10 @@ public final class QQMessageEvent {
     private final String content;
     private final String userOpenId;
     private final String groupOpenId;
+    private final String guildId;
+    private final String channelId;
+    private final Long sequence;
+    private final JsonNode member;
     private final Integer messageType;
     private final Instant timestamp;
     private final QQMessageScene scene;
@@ -41,6 +45,10 @@ public final class QQMessageEvent {
         this.content = text(data, "content");
         this.userOpenId = firstNonBlank(text(data, "user_openid"), text(authorNode, "user_openid"));
         this.groupOpenId = text(data, "group_openid");
+        this.guildId = text(data, "guild_id");
+        this.channelId = text(data, "channel_id");
+        this.sequence = longValue(data, "seq");
+        this.member = data.path("member");
         this.messageType = data.has("message_type") && data.get("message_type").canConvertToInt()
                 ? data.get("message_type").asInt() : null;
         this.timestamp = parseInstant(text(data, "timestamp"));
@@ -106,6 +114,26 @@ public final class QQMessageEvent {
         return groupOpenId;
     }
 
+    /** 返回频道 ID 或频道私信会话的 Guild ID；不存在时返回 {@code null}。 */
+    public String guildId() {
+        return guildId;
+    }
+
+    /** 返回文字子频道 ID；不存在时返回 {@code null}。 */
+    public String channelId() {
+        return channelId;
+    }
+
+    /** 返回频道消息顺序号；不存在时返回 {@code null}。 */
+    public Long sequence() {
+        return sequence;
+    }
+
+    /** 返回频道成员信息原始 JSON；非频道消息时通常为空节点。 */
+    public JsonNode member() {
+        return member;
+    }
+
     /** 返回 QQ 消息类型码；不存在时返回 {@code null}。 */
     public Integer messageType() {
         return messageType;
@@ -134,6 +162,21 @@ public final class QQMessageEvent {
     /** 判断消息是否来自群聊。 */
     public boolean isGroupMessage() {
         return groupOpenId != null && !groupOpenId.isBlank();
+    }
+
+    /** 判断消息是否来自文字子频道（不含频道私信）。 */
+    public boolean isChannelMessage() {
+        return channelId != null && !channelId.isBlank() && !isDirectMessage();
+    }
+
+    /** 判断消息是否来自频道私信会话。 */
+    public boolean isDirectMessage() {
+        return "DIRECT_MESSAGE_CREATE".equals(eventType);
+    }
+
+    /** 判断消息是否来自 C2C 单聊。 */
+    public boolean isPrivateMessage() {
+        return "C2C_MESSAGE_CREATE".equals(eventType);
     }
 
     /** 向当前消息发送文本回复。 */

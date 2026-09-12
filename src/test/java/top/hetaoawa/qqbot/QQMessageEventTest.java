@@ -31,4 +31,36 @@ class QQMessageEventTest {
         assertTrue(message.isGroupMessage());
         bot.close();
     }
+
+    @Test
+    void normalizesChannelAndDirectMessages() throws Exception {
+        var mapper = new ObjectMapper();
+        var raw = mapper.readTree("""
+                {
+                  "id":"message-2",
+                  "author":{"id":"user-1","username":"小明"},
+                  "content":"hello",
+                  "guild_id":"guild-1",
+                  "channel_id":"channel-1",
+                  "seq":101,
+                  "member":{"roles":["1"]},
+                  "timestamp":"2026-09-12T10:00:00Z"
+                }
+                """);
+        var bot = QQBot.create(BotConfig.builder().appId("app").clientSecret("secret")
+                .logLevel(BotLogLevel.OFF).build());
+
+        var channel = QQMessageEvent.from(bot,
+                new QQEvent("event-2", 0, 4L, "AT_MESSAGE_CREATE", raw, raw));
+        assertTrue(channel.isChannelMessage());
+        assertEquals("guild-1", channel.guildId());
+        assertEquals("channel-1", channel.channelId());
+        assertEquals(101L, channel.sequence());
+        assertEquals("1", channel.member().path("roles").path(0).asText());
+
+        var direct = QQMessageEvent.from(bot,
+                new QQEvent("event-3", 0, 5L, "DIRECT_MESSAGE_CREATE", raw, raw));
+        assertTrue(direct.isDirectMessage());
+        bot.close();
+    }
 }

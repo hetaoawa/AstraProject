@@ -17,13 +17,10 @@ public final class EchoBot {
                 .build();
 
         QQBot bot = QQBot.create(config)
-                .onMessage(message -> message.replyText("收到：" + message.content())
-                        .exceptionally(error -> {
-                            error.printStackTrace();
-                            return null;
-                        }))
-                .onEvent("READY", event -> System.out.println("Bot READY"))
                 .onError(Throwable::printStackTrace);
+        QQBot.Plugin echo = bot.plugin("echo");
+        echo.onMessageAsync(message -> message.replyText("收到：" + message.content()));
+        echo.onEvent("READY", event -> System.out.println("Bot READY"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(bot::close));
         bot.startWebSocket().join();

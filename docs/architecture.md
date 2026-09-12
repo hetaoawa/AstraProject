@@ -7,11 +7,11 @@
 | `QQBot` | 公共入口、监听器注册、消息发送和生命周期管理 |
 | `BotConfig` | 不可变配置和构建期校验 |
 | `AccessTokenManager` | 获取、缓存并在过期前刷新 Access Token |
-| `HttpApiClient` | OpenAPI GET/POST、鉴权头和错误转换 |
+| `HttpApiClient` | OpenAPI JSON/multipart 请求、鉴权头和错误转换 |
 | `GatewayClient` | WebSocket 状态、心跳、Session、重连和事件分发 |
 | `WebhookServer` | HTTP 回调、地址验证、验签和 ACK |
 | `QQEvent` | 协议级原始事件 |
-| `QQMessageEvent` | 单聊和群聊消息的标准化视图 |
+| `QQMessageEvent` | C2C、群聊、频道和频道私信消息的标准化视图 |
 | `MessagePayload` | 可扩展的消息请求构造器 |
 
 ## 共享事件通道
@@ -24,23 +24,29 @@ WebSocket 和 Webhook 都会构造 `QQEvent`，再进入 `QQBot.dispatch`。因�
 
 - Gateway 建连和 OpenAPI 异步包装使用每个 Bot 自有的固定 HTTP 执行器；
 - Gateway 心跳与重连使用单线程守护调度器；
-- JDK WebSocket 回调线程负责解析和事件分发；
+- JDK WebSocket 回调线程只负责解析、路由和向插件执行器投递任务；
 - Webhook 使用缓存线程池，每个请求在线程池线程中处理；
-- 监听器同步执行；
+- 每个 `QQBot.Plugin` 拥有独立的有界固定线程池，默认 2 个线程和 256 个排队任务；
 - 消息发送返回 Future，调用方负责观察成功或失败。
 
-监听器不应进行长时间阻塞操作。建议结构：
+插件监听器的完整回调会在插件线程中启动。普通同步回调结束时任务完成；`on*Async` 返回的 `CompletionStage` 最终完成时任务才结束。Gateway/Webhook 不等待这些任务，因此慢查询、文件处理和外部调用不会占用接收线程。
 
 ```java
-ExecutorService businessPool = Executors.newFixedThreadPool(8);
-
-bot.onMessage(message -> businessPool.submit(() -> {
+bot.plugin("business").onMessage(message -> {
     // 幂等检查、数据库访问、调用业务服务
     handle(message);
-}));
+});
 ```
 
-应用关闭时也应关闭自己的线程池。
+同一插件最多并行执行配置的线程数，事件开始和完成顺序均不保证。不同插件不共享工作线程。命令监听器是例外：匹配监听器仍按优先级串联，框架等待前一个处理 Stage 完成并检查 `continuePropagation` 后，才向下一个插件执行器投递。
+
+## 过载与关闭
+
+插件队列采用有界 `ArrayBlockingQueue`。队列满或 Bot 正在关闭时，新任务以 `RejectedExecutionException` 失败并进入错误报告通道；框架不会使用 `CallerRunsPolicy`，所以拒绝任务不会回到接收线程执行。
+
+`QQBot.close()` 先停止 Gateway/Webhook，再同时停止所有插件执行器接收任务。所有插件共享 `pluginShutdownTimeout` 总等待预算；超时后中断工作线程并取消仍在运行或排队的框架任务，最后关闭 HTTP 执行器。
+
+插件线程名为 `astraqqbot-plugin-{shardId}-{pluginName}-{workerId}`。插件名中的特殊字符会替换为下划线。
 
 ## HTTP 执行器
 

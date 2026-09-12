@@ -52,7 +52,7 @@ argument(0)  -> "user-123"
 argument(1)  -> "10"
 ```
 
-命令监听器可以通过 `message()` 取得原始 `QQMessageEvent`，也可以直接使用 `replyText`、`userOpenId()` 和 `groupOpenId()`。
+命令监听器可以通过 `message()` 取得原始 `QQMessageEvent`，也可以直接使用 `replyText`；目标标识可从 `userOpenId()`、`groupOpenId()`、`guildId()` 或 `channelId()` 获取。
 
 ## 优先级与传播
 
@@ -70,8 +70,11 @@ plugin.onCommand("help", 10, false, command -> {
 
 `continuePropagation=false` 只停止后续命令监听器；普通 `onMessage` 监听器仍会按原有规则接收消息。异步命令监听器返回的 `CompletionStage` 完成后，框架才会继续执行下一个命令监听器。
 
+命令回调本身运行在所属插件的执行器中，Gateway/Webhook 分发线程不会等待命令完成。不同事件各自拥有命令链，可以并发推进；同一事件内匹配的命令监听器仍严格按照优先级和传播规则串行推进。若某个插件队列已满，该命令任务会失败并记录错误，随后仍按该监听器的 `continuePropagation` 配置决定是否继续。
+
 命令监听器日志会包含自动生成的名称、命令和优先级，例如：
 
 ```text
-[DEBUG] [PLUGIN] captured handler=moderation.command.ban kind=command command=ban priority=100
+[DEBUG] [PLUGIN] dispatching handler=moderation.command.ban kind=command command=ban priority=100
+[DEBUG] [PLUGIN] captured handler=moderation.command.ban kind=command plugin=moderation queueSize=0
 ```

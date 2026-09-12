@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -11,6 +12,7 @@ import java.net.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.Map;
+import java.util.UUID;
 
 final class HttpApiClient {
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -65,6 +67,33 @@ final class HttpApiClient {
                 throw new RuntimeException(e);
             } catch (IOException e) {
                 throw new RuntimeException(e);
+            }
+        }, httpExecutor);
+    }
+
+    CompletableFuture<JsonNode> postMultipartAsync(String path, JsonNode fields,
+                                                    String fileName, String contentType, byte[] fileData) {
+        if (fields == null || !fields.isObject()) {
+            throw new IllegalArgumentException("fields must be a JSON object");
+        }
+        if (fileName == null || fileName.isBlank() || fileName.indexOf('\r') >= 0 || fileName.indexOf('\n') >= 0) {
+            throw new IllegalArgumentException("fileName must not be blank or contain line breaks");
+        }
+        if (contentType == null || contentType.isBlank()
+                || contentType.indexOf('\r') >= 0 || contentType.indexOf('\n') >= 0) {
+            throw new IllegalArgumentException("contentType must not be blank or contain line breaks");
+        }
+        if (fileData == null) throw new IllegalArgumentException("fileData must not be null");
+        String boundary = "astraqqbot-" + UUID.randomUUID();
+        byte[] body = multipartBody(boundary, fields, fileName, contentType, fileData);
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return sendMultipart(path, boundary, body);
+            } catch (InterruptedException error) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(error);
+            } catch (IOException error) {
+                throw new RuntimeException(error);
             }
         }, httpExecutor);
     }
@@ -125,15 +154,86 @@ final class HttpApiClient {
         JsonNode result = parse(response.body());
         if (response.statusCode() / 100 != 2) {
             logger.warn("HTTP", "request failed method=" + method + " path=" + safePath(uri)
-                    + " status=" + response.statusCode() + " errorCode=" + result.path("err_code").asLong(-1));
-            throw new BotApiException(
-                    response.statusCode(),
-                    result.path("err_code").asLong(-1),
-                    result.path("message").asText("QQ Bot API request failed"),
-                    result.path("trace_id").asText(null)
-            );
+                    + " status=" + response.statusCode() + " errorCode=" + errorCode(result));
+            throw apiException(response.statusCode(), result);
         }
         return result;
+    }
+
+    private JsonNode sendMultipart(String path, String boundary, byte[] body)
+            throws IOException, InterruptedException {
+        String token = tokenManager.get();
+        URI uri = resolve(path);
+        HttpRequest request = HttpRequest.newBuilder(uri)
+                .header("Authorization", "QQBot " + token)
+                .header("Accept", "application/json")
+                .header("User-Agent", config.userAgent())
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                .build();
+        long started = System.nanoTime();
+        logger.debug("HTTP", "request method=POST path=" + safePath(uri)
+                + " multipart=true bytes=" + body.length);
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        JsonNode result = parse(response.body());
+        logger.debug("HTTP", "response method=POST path=" + safePath(uri)
+                + " status=" + response.statusCode() + " elapsedMs=" + elapsedMillis(started));
+        if (response.statusCode() / 100 != 2) {
+            throw apiException(response.statusCode(), result);
+        }
+        return result;
+    }
+
+    private static byte[] multipartBody(String boundary, JsonNode fields, String fileName,
+                                        String contentType, byte[] fileData) {
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            fields.fields().forEachRemaining(entry -> {
+                if (entry.getValue() == null || entry.getValue().isNull()) return;
+                writeUtf8(output, "--" + boundary + "\r\n");
+                writeUtf8(output, "Content-Disposition: form-data; name=\""
+                        + dispositionValue(entry.getKey()) + "\"\r\n\r\n");
+                JsonNode value = entry.getValue();
+                writeUtf8(output, value.isValueNode() ? value.asText() : value.toString());
+                writeUtf8(output, "\r\n");
+            });
+            writeUtf8(output, "--" + boundary + "\r\n");
+            writeUtf8(output, "Content-Disposition: form-data; name=\"file_image\"; filename=\""
+                    + dispositionValue(fileName) + "\"\r\n");
+            writeUtf8(output, "Content-Type: " + contentType + "\r\n\r\n");
+            output.write(fileData);
+            writeUtf8(output, "\r\n--" + boundary + "--\r\n");
+            return output.toByteArray();
+        } catch (IOException impossible) {
+            throw new IllegalStateException("Unable to construct multipart body", impossible);
+        }
+    }
+
+    private static void writeUtf8(ByteArrayOutputStream output, String value) {
+        try {
+            output.write(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (IOException impossible) {
+            throw new IllegalStateException("Unable to construct multipart body", impossible);
+        }
+    }
+
+    private static String dispositionValue(String value) {
+        return value.replace("\r", "_").replace("\n", "_").replace("\"", "_");
+    }
+
+    private static BotApiException apiException(int status, JsonNode result) {
+        return new BotApiException(
+                status,
+                errorCode(result),
+                result.path("message").asText("QQ Bot API request failed"),
+                result.path("trace_id").asText(null)
+        );
+    }
+
+    private static long errorCode(JsonNode result) {
+        JsonNode code = result.get("code");
+        if (code != null && code.canConvertToLong()) return code.asLong();
+        return result.path("err_code").asLong(-1);
     }
 
     private URI resolve(String path) {

@@ -18,6 +18,9 @@ public final class BotConfig {
     private final int shardCount;
     private final Duration connectTimeout;
     private final int httpExecutorThreads;
+    private final int pluginExecutorThreads;
+    private final int pluginQueueCapacity;
+    private final Duration pluginShutdownTimeout;
     private final Duration reconnectInitialDelay;
     private final Duration reconnectMaxDelay;
     private final String webhookHost;
@@ -39,6 +42,9 @@ public final class BotConfig {
         this.shardCount = builder.shardCount;
         this.connectTimeout = positive(builder.connectTimeout, "connectTimeout");
         this.httpExecutorThreads = builder.httpExecutorThreads;
+        this.pluginExecutorThreads = builder.pluginExecutorThreads;
+        this.pluginQueueCapacity = builder.pluginQueueCapacity;
+        this.pluginShutdownTimeout = positive(builder.pluginShutdownTimeout, "pluginShutdownTimeout");
         this.reconnectInitialDelay = positive(builder.reconnectInitialDelay, "reconnectInitialDelay");
         this.reconnectMaxDelay = positive(builder.reconnectMaxDelay, "reconnectMaxDelay");
         this.webhookHost = requireText(builder.webhookHost, "webhookHost");
@@ -58,6 +64,12 @@ public final class BotConfig {
         }
         if (httpExecutorThreads < 1) {
             throw new IllegalArgumentException("httpExecutorThreads must be positive");
+        }
+        if (pluginExecutorThreads < 1) {
+            throw new IllegalArgumentException("pluginExecutorThreads must be positive");
+        }
+        if (pluginQueueCapacity < 1) {
+            throw new IllegalArgumentException("pluginQueueCapacity must be positive");
         }
         if (reconnectMaxDelay.compareTo(reconnectInitialDelay) < 0) {
             throw new IllegalArgumentException("reconnectMaxDelay must not be smaller than reconnectInitialDelay");
@@ -112,6 +124,21 @@ public final class BotConfig {
     /** 返回执行阻塞 HTTP 请求的专用工作线程数。 */
     public int httpExecutorThreads() {
         return httpExecutorThreads;
+    }
+
+    /** 返回每个插件默认使用的工作线程数。 */
+    public int pluginExecutorThreads() {
+        return pluginExecutorThreads;
+    }
+
+    /** 返回每个插件默认使用的有界等待队列容量。 */
+    public int pluginQueueCapacity() {
+        return pluginQueueCapacity;
+    }
+
+    /** 返回关闭时等待插件任务完成的最长时间。 */
+    public Duration pluginShutdownTimeout() {
+        return pluginShutdownTimeout;
     }
 
     /** 返回 Gateway 首次重连等待时间。 */
@@ -175,6 +202,9 @@ public final class BotConfig {
                 .shard(shardId, shardCount)
                 .connectTimeout(connectTimeout)
                 .httpExecutorThreads(httpExecutorThreads)
+                .pluginExecutorThreads(pluginExecutorThreads)
+                .pluginQueueCapacity(pluginQueueCapacity)
+                .pluginShutdownTimeout(pluginShutdownTimeout)
                 .reconnectInitialDelay(reconnectInitialDelay)
                 .reconnectMaxDelay(reconnectMaxDelay)
                 .webhookAddress(webhookHost, webhookPort)
@@ -240,6 +270,9 @@ public final class BotConfig {
         private int shardCount = 1;
         private Duration connectTimeout = Duration.ofSeconds(20);
         private int httpExecutorThreads = 4;
+        private int pluginExecutorThreads = 2;
+        private int pluginQueueCapacity = 256;
+        private Duration pluginShutdownTimeout = Duration.ofSeconds(5);
         private Duration reconnectInitialDelay = Duration.ofSeconds(2);
         private Duration reconnectMaxDelay = Duration.ofSeconds(30);
         private String webhookHost = "127.0.0.1";
@@ -307,6 +340,24 @@ public final class BotConfig {
         /** 设置每个 Bot 用于阻塞 HTTP 请求的专用工作线程数。 */
         public Builder httpExecutorThreads(int httpExecutorThreads) {
             this.httpExecutorThreads = httpExecutorThreads;
+            return this;
+        }
+
+        /** 设置每个插件默认使用的工作线程数。 */
+        public Builder pluginExecutorThreads(int pluginExecutorThreads) {
+            this.pluginExecutorThreads = pluginExecutorThreads;
+            return this;
+        }
+
+        /** 设置每个插件默认使用的有界等待队列容量。 */
+        public Builder pluginQueueCapacity(int pluginQueueCapacity) {
+            this.pluginQueueCapacity = pluginQueueCapacity;
+            return this;
+        }
+
+        /** 设置关闭时等待插件任务完成的最长时间。 */
+        public Builder pluginShutdownTimeout(Duration pluginShutdownTimeout) {
+            this.pluginShutdownTimeout = pluginShutdownTimeout;
             return this;
         }
 

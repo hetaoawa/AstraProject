@@ -47,7 +47,7 @@ BotConfig config = BotConfig.builder()
         .build();
 
 try (QQBot bot = QQBot.create(config)) {
-    bot.onMessage(message -> System.out.println(message.content()));
+    bot.plugin("messages").onMessage(message -> System.out.println(message.content()));
     bot.startWebSocket().join();
     Thread.currentThread().join();
 }

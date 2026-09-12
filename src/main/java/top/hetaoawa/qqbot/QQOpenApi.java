@@ -12,7 +12,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * QQ Bot OpenAPI 的类型化封装，不包含频道消息收发和频道私信。
+ * QQ Bot OpenAPI 的类型化封装，包含频道消息辅助能力、频道私信和资源管理接口。
  * 请求体使用 {@link JsonNode}，便于兼容官方新增字段和扩展管理接口。
  */
 public final class QQOpenApi {
@@ -222,6 +222,20 @@ public final class QQOpenApi {
         return delete(query(path, params("hidetip", hideTip)));
     }
 
+    /** 创建机器人与同一频道成员之间的频道私信会话。 */
+    public CompletableFuture<JsonNode> createDirectMessage(String recipientId, String sourceGuildId) {
+        JsonNode body = JsonNodeFactory.instance.objectNode()
+                .put("recipient_id", text(recipientId, "recipientId"))
+                .put("source_guild_id", text(sourceGuildId, "sourceGuildId"));
+        return post("/users/@me/dms", body);
+    }
+
+    /** 撤回频道私信。 */
+    public CompletableFuture<JsonNode> recallDirectMessage(String guildId, String messageId, boolean hideTip) {
+        String path = "/dms/" + id(guildId, "guildId") + "/messages/" + id(messageId, "messageId");
+        return delete(query(path, params("hidetip", hideTip)));
+    }
+
     /** 发送或更新 C2C 流式消息。 */
     public CompletableFuture<JsonNode> streamPrivateMessage(String userOpenId, StreamMessagePayload payload) {
         Objects.requireNonNull(payload, "payload");
@@ -323,7 +337,40 @@ public final class QQOpenApi {
 
     /** 获取待处理的加群申请列表。 */
     public CompletableFuture<JsonNode> listGroupJoinRequests(String groupOpenId) {
-        return get(groupPath(groupOpenId) + "/join_request_list");
+        return listGroupJoinRequests(groupOpenId, null, null);
+    }
+
+    /** 分页获取待处理的加群申请列表。 */
+    public CompletableFuture<JsonNode> listGroupJoinRequests(String groupOpenId, String cursor, Integer limit) {
+        return get(query(groupPath(groupOpenId) + "/join_request_list",
+                params("cursor", cursor, "limit", limit)));
+    }
+
+    /** 分页获取群成员列表。 */
+    public CompletableFuture<JsonNode> listGroupMembers(String groupOpenId, String cursor) {
+        return get(query(groupPath(groupOpenId) + "/members", params("cursor", cursor)));
+    }
+
+    /** 获取指定群成员信息。 */
+    public CompletableFuture<JsonNode> getGroupMember(String groupOpenId, String memberOpenId) {
+        return get(groupPath(groupOpenId) + "/members/" + id(memberOpenId, "memberOpenId"));
+    }
+
+    /** 批量移除群成员，单次最多 20 个；请求体由官方字段定义。 */
+    public CompletableFuture<JsonNode> batchRemoveGroupMembers(String groupOpenId, JsonNode request) {
+        return post(groupPath(groupOpenId) + "/batch_remove_members", object(request, "request"));
+    }
+
+    /** 分页获取群黑名单。 */
+    public CompletableFuture<JsonNode> listGroupMemberBlacklist(String groupOpenId,
+                                                                 String cursor, Integer limit) {
+        return get(query(groupPath(groupOpenId) + "/member_blacklist",
+                params("cursor", cursor, "limit", limit)));
+    }
+
+    /** 添加或移除群黑名单成员，操作和成员列表由官方请求体定义。 */
+    public CompletableFuture<JsonNode> updateGroupMemberBlacklist(String groupOpenId, JsonNode request) {
+        return post(groupPath(groupOpenId) + "/member_blacklist", object(request, "request"));
     }
 
     /** 根据请求体处理加群申请。 */
@@ -569,6 +616,11 @@ public final class QQOpenApi {
     private static String id(String value, String name) {
         requireText(value, name);
         return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    private static String text(String value, String name) {
+        requireText(value, name);
+        return value;
     }
 
     private static void requireText(String value, String name) {

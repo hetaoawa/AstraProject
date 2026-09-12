@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class MessagePayloadTest {
     @Test
@@ -47,5 +48,21 @@ class MessagePayloadTest {
         var kv = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.arrayNode();
         kv.addObject().put("key", "#PROMPT#").put("value", "hello");
         assertEquals(23, MessagePayload.ark(23, kv).toJson().path("ark").path("template_id").asInt());
+    }
+
+    @Test
+    void createsEmbedAndAdaptsPayloadForChannelEndpoints() {
+        var embed = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode()
+                .put("title", "notice");
+        assertEquals("notice", MessagePayload.embed(embed).toJson().path("embed").path("title").asText());
+
+        var channel = MessagePayload.markdown("hello")
+                .messageSequence(2)
+                .forceVerifyImageResource(true)
+                .copyChannelNode();
+        assertEquals("hello", channel.path("markdown").path("content").asText());
+        assertFalse(channel.has("msg_type"));
+        assertFalse(channel.has("msg_seq"));
+        assertFalse(channel.has("force_verify_image_resource"));
     }
 }

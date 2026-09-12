@@ -23,6 +23,8 @@
 | `10 Hello` | 创建心跳任务，发送 Identify 或 Resume |
 | `11 Heartbeat ACK` | 确认心跳成功，不向业务层分发 |
 
+收到 Dispatch 后，WebSocket 回调线程只完成模型转换、监听器匹配和插件任务投递，随后立即请求下一帧。任务成功入队不等于业务处理成功；插件完成状态通过 Future 和插件完成/失败日志观察。
+
 ## 重连策略
 
 重连从 `reconnectInitialDelay` 开始，每次失败后翻倍，最大不超过 `reconnectMaxDelay`。成功建立网络连接后，等待时间恢复为初始值。

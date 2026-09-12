@@ -1,6 +1,6 @@
 # 扩展 OpenAPI 与管理能力
 
-`QQBot.api()` 返回 `QQOpenApi`。它封装了 C2C/群聊扩展能力，以及频道资源、权限、内容管理、消息撤回和互动相关的官方 OpenAPI 路径、HTTP 方法、路径参数编码、鉴权和错误处理。当前不包含频道消息发送和频道私信。管理请求体使用 Jackson `JsonNode`，以便兼容官方字段扩展；调用方无需自行拼接 URL。
+`QQBot.api()` 返回 `QQOpenApi`。它封装了 C2C/群聊扩展能力，以及频道资源、权限、内容管理、消息撤回和互动相关的官方 OpenAPI 路径、HTTP 方法、路径参数编码、鉴权和错误处理。频道/频道私信发送由 `QQBot` 提供，私信会话创建和撤回由 `QQOpenApi` 提供。管理请求体使用 Jackson `JsonNode`，以便兼容官方字段扩展；调用方无需自行拼接 URL。
 
 ## C2C 与群聊消息扩展
 
@@ -48,14 +48,16 @@ MessagePayload ark = MessagePayload.ark(23, arkKeyValues);
 
 - `getMenu`、`updateMenu`；
 - `listPanels`、`createPanel`、`getPanel`、`updatePanel`、`deletePanel`、`setPanelTarget`；
-- `getGroupInfo`、`getGroupBotState`、`listGroupJoinRequests`、`approveGroupJoinRequest`；
+- `getGroupInfo`、`getGroupBotState`、分页 `listGroupJoinRequests`、`approveGroupJoinRequest`；
+- `listGroupMembers`、`getGroupMember`、`batchRemoveGroupMembers`；
+- `listGroupMemberBlacklist`、`updateGroupMemberBlacklist`；
 - `getGroupRestrictChatSetting`、`updateGroupRestrictChatSetting`；
 - 入群审批策略的查询、创建、更新、删除、执行和白名单维护；
 - `generateUrlLink`。
 
 ## Guild、Channel 与内容管理
 
-频道消息发送和频道私信仍未实现，但频道消息撤回、互动以及以下资源管理能力可用：
+频道消息与频道私信发送见 [消息文档](messages.md)。`createDirectMessage` 创建私信会话，`recallDirectMessage` 撤回私信；频道消息撤回、互动以及以下资源管理能力也可用：
 
 - 当前机器人资料、Guild 列表和详情；
 - Channel 查询、创建、修改和删除；

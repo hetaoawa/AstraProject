@@ -5,7 +5,8 @@
 ## 原始事件
 
 ```java
-bot.onEvent(event -> {
+QQBot.Plugin plugin = bot.plugin("events");
+plugin.onEvent(event -> {
     System.out.println(event.type());
     System.out.println(event.raw());
 });
@@ -27,7 +28,7 @@ bot.onEvent(event -> {
 ## 指定事件类型
 
 ```java
-bot.onEvent("FRIEND_ADD", event -> {
+plugin.onEvent("FRIEND_ADD", event -> {
     System.out.println("新增好友：" + event.data());
 });
 ```
@@ -41,9 +42,12 @@ bot.onEvent("FRIEND_ADD", event -> {
 - `C2C_MESSAGE_CREATE`
 - `GROUP_AT_MESSAGE_CREATE`
 - `GROUP_MESSAGE_CREATE`
+- `AT_MESSAGE_CREATE`
+- `MESSAGE_CREATE`
+- `DIRECT_MESSAGE_CREATE`
 
 ```java
-bot.onMessage(message -> {
+plugin.onMessage(message -> {
     if (message.isGroupMessage()) {
         System.out.println("群 " + message.groupOpenId());
     } else {
@@ -64,11 +68,17 @@ bot.onMessage(message -> {
 | `content()` | 文本内容；非文本消息可能为空 |
 | `userOpenId()` | 单聊用户 OpenID |
 | `groupOpenId()` | 群 OpenID |
+| `guildId()` | 频道 ID；频道私信事件中为私信会话 Guild ID |
+| `channelId()` | 文字子频道 ID |
+| `sequence()` | 频道消息顺序号 |
+| `member()` | 频道成员原始 JSON |
 | `messageType()` | 官方消息类型整数 |
 | `timestamp()` | 尝试解析后的 `Instant`，格式异常时为空 |
 | `scene()` | 消息场景和扩展项 |
 | `attachments()` | 图片、文件、语音等附件元数据 |
 | `raw()` | 完整原始 JSON |
+
+场景判断可使用 `isPrivateMessage()`、`isGroupMessage()`、`isChannelMessage()` 和 `isDirectMessage()`。`replyText` 会根据场景自动调用正确的发送端点。
 
 ## 场景扩展
 
@@ -89,17 +99,17 @@ String authToken = message.scene().extension("auth_token");
 - `scene().extension("msg_idx")`；
 - 必要时组合 `eventType()` 和目标 OpenID。
 
-监听器执行过程中抛出的异常会被记录，不会中断后续监听器。业务侧仍应使用 `onError` 和自己的可观测性系统记录失败。
+插件监听器会被投递到插件独享线程池，同一插件内可并发执行且不保证完成顺序。监听器异常会被记录，不会中断其他普通监听器。队列满时任务以 `RejectedExecutionException` 被拒绝，并通过错误监听器报告；业务写操作仍须使用事件 ID 或消息 ID 保证幂等。
 
 ## 扩展事件模型
 
 除消息事件外，框架还提供以下标准化监听器：
 
 ```java
-bot.onInteraction(event -> event.respond(0));
-bot.onRelationship(event -> System.out.println(event.eventType()));
-bot.onMessageStatus(event -> System.out.println(event.status()));
-bot.onResource(event -> System.out.println(event.resourceId()));
+plugin.onInteractionAsync(event -> event.respond(0));
+plugin.onRelationship(event -> System.out.println(event.eventType()));
+plugin.onMessageStatus(event -> System.out.println(event.status()));
+plugin.onResource(event -> System.out.println(event.resourceId()));
 ```
 
 | 监听器 | 模型 | 覆盖范围 |

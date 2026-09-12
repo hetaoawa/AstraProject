@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,11 +37,28 @@ class LoggingTest {
                 assertFalse(beforeCompletion.contains("completed handler=hello-plugin.message"));
 
                 pluginWork.complete(null);
-                assertTrue(bytes.toString(StandardCharsets.UTF_8).contains("completed handler=hello-plugin.message"));
+                assertTrue(waitUntil(() -> bytes.toString(StandardCharsets.UTF_8)
+                        .contains("completed handler=hello-plugin.message"), Duration.ofSeconds(2)));
             }
         } finally {
             System.setOut(original);
         }
+    }
+
+    private static boolean waitUntil(java.util.function.BooleanSupplier condition, Duration timeout) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (System.nanoTime() < deadline) {
+            if (condition.getAsBoolean()) {
+                return true;
+            }
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException error) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return condition.getAsBoolean();
     }
 
     @Test

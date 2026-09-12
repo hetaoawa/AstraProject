@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class QQOpenApiTest {
@@ -21,6 +22,7 @@ class QQOpenApiTest {
     private final AtomicReference<String> lastPath = new AtomicReference<>();
     private final AtomicReference<String> lastBody = new AtomicReference<>();
     private final AtomicReference<String> callbackAppId = new AtomicReference<>();
+    private final AtomicReference<String> contentType = new AtomicReference<>();
 
     @BeforeEach
     void startServer() throws IOException {
@@ -32,6 +34,7 @@ class QQOpenApiTest {
             lastPath.set(exchange.getRequestURI().toString());
             lastBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             callbackAppId.set(exchange.getRequestHeaders().getFirst("X-Callback-AppID"));
+            contentType.set(exchange.getRequestHeaders().getFirst("Content-Type"));
             assertEquals("QQBot test-token", exchange.getRequestHeaders().getFirst("Authorization"));
             respond(exchange, "{\"ok\":true}");
         });
@@ -85,6 +88,78 @@ class QQOpenApiTest {
             bot.api().removeGuildMember("guild-1", "user-1", true, 7).join();
             assertEquals("DELETE", lastMethod.get());
             assertTrue(lastBody.get().contains("delete_history_msg_days"));
+
+            bot.api().listGroupJoinRequests("group-1", "next cursor", 50).join();
+            assertEquals("/v2/groups/group-1/join_request_list?cursor=next%20cursor&limit=50", lastPath.get());
+
+            bot.api().listGroupMembers("group-1", "member cursor").join();
+            assertEquals("/v2/groups/group-1/members?cursor=member%20cursor", lastPath.get());
+
+            bot.api().getGroupMember("group-1", "member 1").join();
+            assertEquals("/v2/groups/group-1/members/member%201", lastPath.get());
+
+            var members = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+            members.putArray("member_openids").add("member-1");
+            bot.api().batchRemoveGroupMembers("group-1", members).join();
+            assertEquals("/v2/groups/group-1/batch_remove_members", lastPath.get());
+            assertEquals("POST", lastMethod.get());
+
+            bot.api().listGroupMemberBlacklist("group-1", "blacklist cursor", 100).join();
+            assertEquals("/v2/groups/group-1/member_blacklist?cursor=blacklist%20cursor&limit=100", lastPath.get());
+
+            bot.api().updateGroupMemberBlacklist("group-1",
+                    com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode().put("op", "add")).join();
+            assertEquals("/v2/groups/group-1/member_blacklist", lastPath.get());
+
+            bot.api().createDirectMessage("user 1", "guild 1").join();
+            assertEquals("/users/@me/dms", lastPath.get());
+            assertTrue(lastBody.get().contains("source_guild_id"));
+
+            bot.api().recallDirectMessage("dm guild", "message 1", true).join();
+            assertEquals("/dms/dm%20guild/messages/message%201?hidetip=true", lastPath.get());
+        }
+    }
+
+    @Test
+    void mapsChannelAndDirectMessageEndpointsWithoutC2cFields() {
+        try (QQBot bot = QQBot.create(BotConfig.builder()
+                .appId("app").clientSecret("secret")
+                .apiBaseUri(baseUrl + "/")
+                .accessTokenUri(baseUrl + "/token")
+                .logLevel(BotLogLevel.OFF)
+                .build())) {
+            bot.sendChannelMessage("channel 1", MessagePayload.markdown("hello").messageSequence(2)).join();
+            assertEquals("/channels/channel%201/messages", lastPath.get());
+            assertFalse(lastBody.get().contains("msg_type"));
+            assertFalse(lastBody.get().contains("msg_seq"));
+
+            bot.sendDirectMessage("dm guild", MessagePayload.embed(
+                    com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode()
+                            .put("title", "notice"))).join();
+            assertEquals("/dms/dm%20guild/messages", lastPath.get());
+            assertTrue(lastBody.get().contains("embed"));
+
+            bot.sendChannelImage("channel-1", MessagePayload.text("caption"),
+                    "picture.png", "image/png", new byte[]{1, 2, 3}).join();
+            assertTrue(contentType.get().startsWith("multipart/form-data; boundary="));
+            assertTrue(lastBody.get().contains("name=\"file_image\"; filename=\"picture.png\""));
+            assertTrue(lastBody.get().contains("name=\"content\""));
+
+            var directData = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+            directData.put("id", "message-1").put("guild_id", "dm-guild").put("channel_id", "dm-channel");
+            directData.putObject("author").put("id", "user-1");
+            var direct = QQMessageEvent.from(bot,
+                    new QQEvent("event-1", 0, 1L, "DIRECT_MESSAGE_CREATE", directData, directData));
+            direct.replyText("reply").join();
+            assertEquals("/dms/dm-guild/messages", lastPath.get());
+            assertTrue(lastBody.get().contains("msg_id"));
+
+            var channelData = directData.deepCopy();
+            channelData.put("channel_id", "channel-2").put("guild_id", "guild-2");
+            var channel = QQMessageEvent.from(bot,
+                    new QQEvent("event-2", 0, 2L, "AT_MESSAGE_CREATE", channelData, channelData));
+            channel.replyText("reply").join();
+            assertEquals("/channels/channel-2/messages", lastPath.get());
         }
     }
 

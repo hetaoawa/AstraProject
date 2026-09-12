@@ -92,7 +92,7 @@ public interface BotPlugin extends AutoCloseable {
 
     @Override
     default void close() {
-        // 插件持有线程池、数据库连接等资源时在实现类中覆盖。
+        // 插件持有数据库连接等额外资源时在实现类中覆盖。
     }
 }
 ```
@@ -132,6 +132,27 @@ public final class HelloPlugin implements BotPlugin {
 ```
 
 监听器会收到单聊和群聊消息。插件应先判断命令是否匹配，再执行业务逻辑，避免回复所有消息。
+
+`bot.plugin(name())` 会为插件创建独享的有界固定线程池。默认配置为 2 个线程和 256 个排队任务，因此监听器不会阻塞 Gateway/Webhook 接收线程，但同一插件的多个事件可能并发和乱序完成。
+
+重任务插件可覆盖默认容量：
+
+```java
+PluginExecutionOptions options = PluginExecutionOptions.builder()
+        .threads(4)
+        .queueCapacity(512)
+        .build();
+QQBot.Plugin plugin = bot.plugin(name(), options);
+```
+
+使用异步 API 时必须返回业务 Future：
+
+```java
+plugin.onMessageAsync(message -> database.save(message)
+        .thenCompose(ignored -> message.replyText("处理完成")));
+```
+
+不要只在回调中启动异步任务后返回空结果，否则框架无法跟踪最终完成、异常和关闭状态。
 
 ## 5. 创建宿主并加载插件
 
@@ -197,7 +218,7 @@ public final class Main {
 
 `startWebSocket().join()` 只等待 Gateway 返回 `READY`，随后就会结束等待。因此示例使用 `CountDownLatch` 保持进程运行。
 
-示例启用了 DEBUG 日志。因为插件使用 `onMessageAsync(name(), ...)` 注册，控制台会显示事件被 `hello` 捕获，以及回复 Future 真正完成或失败的时间。
+示例启用了 DEBUG 日志。控制台会显示事件被 `hello` 捕获、成功进入插件队列，以及回复 Future 真正完成或失败的时间。
 
 ## 6. 配置凭证并运行
 
@@ -231,7 +252,7 @@ Bot READY
 ### 监听指定事件
 
 ```java
-bot.onEvent("FRIEND_ADD", event -> {
+bot.plugin("welcome").onEvent("FRIEND_ADD", event -> {
     System.out.println("新增好友：" + event.data());
 });
 ```
@@ -279,11 +300,12 @@ plugins/
 
 1. `register` 只注册监听器，不执行长时间阻塞操作。
 2. 命令解析、权限判断和业务服务放在插件自己的方法或服务类中。
-3. 数据库连接、线程池等资源由插件持有，并在 `close()` 中释放。
+3. 框架管理插件监听器线程池；数据库连接等额外资源仍由插件持有并在 `close()` 中释放。
 4. 所有 `CompletableFuture` 都要处理异常，不要静默丢弃发送失败。
 5. QQ 事件可能重复投递；涉及签到、积分、审批等写操作时，以消息 ID 或事件 ID 做幂等。
-6. 不要在监听器线程中执行慢查询、文件处理或外部网络调用，应转交业务线程池。
-7. 使用带名称的监听器注册方法；需要跟踪异步完成时使用 `onMessageAsync` 或 `onEventAsync`。
+6. 慢查询、文件处理或外部调用可直接在插件隔离线程中执行，但应合理设置线程数、队列容量和业务超时。
+7. 异步业务应把 `CompletionStage` 返回给 `onMessageAsync` 或 `onEventAsync`，不要启动后遗忘。
+8. 插件默认并发执行，共享集合、缓存和计数器必须保证线程安全。
 
 ## 9. 选择正确的 Intents
 
@@ -314,7 +336,7 @@ mvn package
 
 - AppID/AppSecret 从环境变量或密钥服务读取；
 - 使用 QQ 开放平台测试环境验证命令和权限；
-- 监听器中的耗时任务已转交线程池；
+- 插件线程数、队列容量和业务超时与实际负载匹配；
 - 主动消息和管理 API 的 Future 均处理异常；
 - 写操作具备幂等策略；
 - 进程关闭时会执行插件 `close()` 和 `QQBot.close()`；

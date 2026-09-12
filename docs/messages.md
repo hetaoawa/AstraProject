@@ -7,6 +7,8 @@
 ```java
 bot.sendPrivateMessage(userOpenId, "你好");
 bot.sendGroupMessage(groupOpenId, "群消息");
+bot.sendChannelMessage(channelId, "频道消息");
+bot.sendDirectMessage(directGuildId, "频道私信");
 ```
 
 ## 发送 Markdown
@@ -18,12 +20,41 @@ bot.sendPrivateMessage(userOpenId, payload);
 
 是否能发送 Markdown 取决于机器人权限和平台策略。
 
+## 频道专属消息
+
+频道与频道私信支持 Embed：
+
+```java
+ObjectNode embed = new ObjectMapper().createObjectNode()
+        .put("title", "构建完成")
+        .put("prompt", "状态通知");
+bot.sendChannelMessage(channelId, MessagePayload.embed(embed));
+```
+
+URL 图片可通过平台转存：
+
+```java
+bot.sendChannelMessage(channelId,
+        MessagePayload.channelImage("https://example.com/image.png"));
+```
+
+本地图片字节使用官方 `multipart/form-data` 的 `file_image` 字段：
+
+```java
+bot.sendChannelImage(channelId, MessagePayload.text("图片说明"),
+        "image.png", "image/png", imageBytes);
+bot.sendDirectImage(directGuildId, MessagePayload.empty(),
+        "image.png", "image/png", imageBytes);
+```
+
+同一个 `MessagePayload` 用于频道端点时，框架会移除只属于 C2C/群聊协议的 `msg_type`、`msg_seq` 和 `force_verify_image_resource` 字段。
+
 ## 被动回复
 
 最简单的方式：
 
 ```java
-bot.onMessage(message -> message.replyText("收到"));
+bot.plugin("reply").onMessageAsync(message -> message.replyText("收到"));
 ```
 
 或显式构造请求：
@@ -35,6 +66,10 @@ MessagePayload payload = MessagePayload.text("这是回复")
 
 if (message.isGroupMessage()) {
     bot.sendGroupMessage(message.groupOpenId(), payload);
+} else if (message.isDirectMessage()) {
+    bot.sendDirectMessage(message.guildId(), payload);
+} else if (message.isChannelMessage()) {
+    bot.sendChannelMessage(message.channelId(), payload);
 } else {
     bot.sendPrivateMessage(message.userOpenId(), payload);
 }

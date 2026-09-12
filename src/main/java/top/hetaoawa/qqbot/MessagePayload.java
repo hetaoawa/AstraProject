@@ -16,6 +16,11 @@ public final class MessagePayload {
         this.body = body;
     }
 
+    /** 创建空的可扩展载荷，适合从官方字段逐项构造频道消息。 */
+    public static MessagePayload empty() {
+        return new MessagePayload(MAPPER.createObjectNode());
+    }
+
     /**
      * 创建纯文本消息载荷。
      *
@@ -97,6 +102,29 @@ public final class MessagePayload {
         ObjectNode node = MAPPER.createObjectNode().put("msg_type", 3);
         node.putObject("ark").put("template_id", templateId).set("kv", keyValues.deepCopy());
         return new MessagePayload(node);
+    }
+
+    /**
+     * 创建仅适用于文字子频道和频道私信的 Embed 消息载荷。
+     *
+     * @param embed 官方 {@code MessageEmbed} JSON 对象
+     * @return 新消息载荷
+     */
+    public static MessagePayload embed(JsonNode embed) {
+        if (embed == null || !embed.isObject()) {
+            throw new IllegalArgumentException("embed must be a JSON object");
+        }
+        ObjectNode node = MAPPER.createObjectNode();
+        node.set("embed", embed.deepCopy());
+        return new MessagePayload(node);
+    }
+
+    /** 创建使用平台转存 URL 图片的频道消息载荷。 */
+    public static MessagePayload channelImage(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            throw new IllegalArgumentException("imageUrl must not be blank");
+        }
+        return empty().put("image", imageUrl);
     }
 
     /**
@@ -201,6 +229,15 @@ public final class MessagePayload {
     }
 
     /**
+     * 设置 Markdown 图片资源转存失败时是否中断消息发送。
+     * 该字段仅在 C2C/群聊 Markdown 消息中生效。
+     */
+    public MessagePayload forceVerifyImageResource(boolean enabled) {
+        body.put("force_verify_image_resource", enabled);
+        return this;
+    }
+
+    /**
      * 根据标准化消息事件添加回复字段。
      *
      * @param event 来源消息事件
@@ -231,6 +268,15 @@ public final class MessagePayload {
 
     ObjectNode copyNode() {
         return body.deepCopy();
+    }
+
+    /** 返回适用于频道消息接口的副本，移除仅由 C2C/群聊接口使用的消息类型字段。 */
+    ObjectNode copyChannelNode() {
+        ObjectNode copy = body.deepCopy();
+        copy.remove("msg_type");
+        copy.remove("msg_seq");
+        copy.remove("force_verify_image_resource");
+        return copy;
     }
 
     /**

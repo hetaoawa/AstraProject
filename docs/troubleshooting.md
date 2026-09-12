@@ -72,6 +72,27 @@ printenv QQ_BOT_CLIENT_SECRET
 
 这是平台至少一次投递语义下可能出现的正常情况。使用 `messageId` 和 `msg_idx` 做幂等，不要只依赖内存布尔值。
 
+## 插件任务被拒绝或没有执行
+
+若日志出现 `RejectedExecutionException` 或 `queue=256/256`，说明插件处理速度低于事件进入速度，或者 Bot 已开始关闭。依次检查：
+
+- 是否存在没有超时的外部网络、数据库或文件操作；
+- 异步监听器是否返回了永不完成的 `CompletionStage`；
+- 插件线程数与下游连接池容量是否匹配；
+- 是否需要通过 `PluginExecutionOptions` 增加线程数或队列容量；
+- 业务是否能通过事件 ID 幂等重试被拒绝的任务。
+
+框架不会在 Gateway/Webhook 线程执行被拒绝的任务，也不会使用无界队列。不要只扩大队列来掩盖持续吞吐不足。
+
+## 关闭时插件任务被中断
+
+`QQBot.close()` 在 `pluginShutdownTimeout` 内等待所有插件，超时后会中断运行任务并取消排队任务。若出现 `shutdown timed out`：
+
+- 为阻塞 I/O 设置超时并正确响应线程中断；
+- 确保插件返回的 Future 最终会完成；
+- 适当增加全局关闭超时；
+- 不要在 JVM shutdown hook 中启动新的插件任务。
+
 ## 程序在 READY 后退出
 
 `startWebSocket()` 的 Future 在 READY 时完成，`join()` 随后返回。如果 `main` 没有其他非守护线程，进程会退出。由应用服务器、生命周期管理器、阻塞等待或其他合适机制保持主进程运行。

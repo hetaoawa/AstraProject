@@ -7,7 +7,7 @@ AstraQQBot 内置按 Bot 实例配置的控制台日志，不要求应用额外�
 - OpenAPI 请求方法、路径、状态码和耗时，但不会输出鉴权头；
 - Gateway/Webhook 收到的事件类型、ID、序列号及 ACK；
 - 事件被哪个命名监听器捕获；
-- 同步或异步监听器完成、失败及耗时；
+- 插件任务排队、完成、失败、拒绝及耗时；
 - Gateway 重连、签名拒绝、HTTP 错误和插件异常。
 
 ## 日志级别
@@ -37,8 +37,8 @@ BotConfig config = BotConfig.builder()
 
 ```text
 2026-08-14 16:30:00.123 [DEBUG] [EVENT] [HttpClient-1-Worker-0] received type=C2C_MESSAGE_CREATE id=event-1 op=0 sequence=15
-2026-08-14 16:30:00.124 [DEBUG] [PLUGIN] [HttpClient-1-Worker-0] captured handler=hello kind=message eventType=C2C_MESSAGE_CREATE eventId=event-1
-2026-08-14 16:30:00.201 [DEBUG] [PLUGIN] [ForkJoinPool.commonPool-worker-1] completed handler=hello kind=message eventType=C2C_MESSAGE_CREATE eventId=event-1 elapsedMs=77
+2026-08-14 16:30:00.124 [DEBUG] [PLUGIN] [HttpClient-1-Worker-0] captured handler=hello.message kind=message plugin=hello eventType=C2C_MESSAGE_CREATE eventId=event-1 queueSize=0
+2026-08-14 16:30:00.201 [DEBUG] [PLUGIN] [astraqqbot-plugin-0-hello-1] completed handler=hello.message kind=message eventType=C2C_MESSAGE_CREATE eventId=event-1 elapsedMs=77
 ```
 
 ## 为插件监听器命名
@@ -53,13 +53,13 @@ plugin.onError(error -> monitoringService.report(error));
 ```
 
 框架会自动生成 `hello-plugin.message`、`hello-plugin.event.READY` 和
-`hello-plugin.error` 等名称。同一类监听器重复注册时会追加 `#2`、`#3`。旧的显式命名注册 API 仍然兼容。
+`hello-plugin.error` 等名称。同一类监听器重复注册时会追加 `#2`、`#3`。相同插件名创建的多个作用域共享执行器和名称计数。
 
-同步监听器：
+底层直接注册 API 会在调用线程执行，不推荐用于业务插件：
 
 ```java
 bot.onMessage("help-plugin", message -> {
-    // 同步处理；回调返回时记录 completed。
+    // 直接注册在 QQBot 上，不经过插件隔离执行器。
 });
 ```
 
@@ -71,14 +71,14 @@ bot.onEvent("FRIEND_ADD", "welcome-plugin", event -> {
 });
 ```
 
-旧的匿名注册方式仍然兼容，但日志名称会是 JVM 生成的 Lambda 类名，不利于排查问题。
+业务代码应优先通过 `bot.plugin(name)` 注册，以获得隔离、线程命名、有界队列和统一关闭。
 
 ## 跟踪异步插件完成状态
 
-监听器内调用发送消息、数据库或网络异步 API 时，使用异步注册方法并返回 `CompletionStage`：
+监听器内调用发送消息、数据库或网络异步 API 时，使用插件异步注册方法并返回 `CompletionStage`：
 
 ```java
-bot.onMessageAsync("hello-plugin", message -> {
+bot.plugin("hello-plugin").onMessageAsync(message -> {
     if (!"/hello".equals(message.content())) {
         return CompletableFuture.completedFuture(null);
     }
@@ -86,13 +86,13 @@ bot.onMessageAsync("hello-plugin", message -> {
 });
 ```
 
-框架会在返回的 Stage 完成时记录 `completed`；异常完成时记录 `failed` 和堆栈。普通 `onMessage` 只能表示同步回调已经返回，无法判断回调内部未返回的 Future 是否完成。
+框架会在返回的 Stage 完成时记录 `completed`；异常完成时记录 `failed` 和堆栈。插件普通 `onMessage` 和 `onMessageAsync` 都会先进入插件线程池，区别仅在于前者以回调返回作为完成，后者继续跟踪返回的 Future。
 
 对应的原始事件异步入口为：
 
 ```java
-bot.onEventAsync("audit-plugin", event -> auditService.save(event));
-bot.onEventAsync("GROUP_JOIN_REQUEST", "approval-plugin", event -> approvalService.handle(event));
+bot.plugin("audit-plugin").onEventAsync(event -> auditService.save(event));
+bot.plugin("approval-plugin").onEventAsync("GROUP_JOIN_REQUEST", event -> approvalService.handle(event));
 ```
 
 标准化事件也提供 `onInteractionAsync`、`onRelationshipAsync`、`onMessageStatusAsync` 和 `onResourceAsync`。
@@ -116,9 +116,11 @@ bot.onEventAsync("GROUP_JOIN_REQUEST", "approval-plugin", event -> approvalServi
 bot.onError("monitoring", error -> monitoringService.report(error));
 ```
 
-错误监听器也支持显式命名。未指定名称的旧写法仍然兼容，但日志中的监听器名称会是 Java Lambda 的运行时类名。
+插件错误监听器也在所属插件线程池中执行。队列拒绝会记录插件名、监听器名、事件、线程数和队列使用量；错误监听器自身也被拒绝时只记录一次，避免递归报告。
 
 插件异步任务应把 Future 返回给 `onMessageAsync`/`onEventAsync`。如果插件自行启动任务又不返回 Future，框架无法记录任务的最终完成状态。
+
+关闭等待超时会输出 `shutdown timed out plugin=... cancelled=...`。这表示仍有同步任务未响应中断，或返回的异步 Stage 没有在配置时间内完成。
 
 ## 多分片日志
 

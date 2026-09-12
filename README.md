@@ -1,8 +1,8 @@
 # AstraQQBot
 
-面向 Java 17+ 的 QQ 官方机器人轻量开发框架，封装 QQ Bot API v2 的鉴权、WebSocket Gateway、Webhook 回调以及单聊/群聊消息收发。
+面向 Java 17+ 的 QQ 官方机器人轻量开发框架，封装 QQ Bot API v2 的鉴权、WebSocket Gateway、Webhook 回调以及 C2C、群聊、频道和频道私信消息收发。
 
-> 当前版本为 `0.1.0`。已支持 Guild/Channel 资源、权限和内容管理，但暂不包含频道消息发送、标准化接收和频道私信；其他管理接口仍可能调整。
+> 当前版本为 `0.1.0`。能力清单已按 QQ 官方文档站点 `v1.30.0`（2026-09-12）核对；部分群成员管理接口仍处于官方内邀阶段。
 
 ## 已实现
 
@@ -10,13 +10,15 @@
 - 获取 Gateway 地址并完成 Identify/Resume。
 - 自动发送心跳、记录序列号、处理 ACK、断线指数退避重连。
 - Webhook 回调地址验证、Ed25519 请求验签和 Callback ACK。
-- 接收 `C2C_MESSAGE_CREATE`、`GROUP_AT_MESSAGE_CREATE`、`GROUP_MESSAGE_CREATE`。
-- 发送单聊/群聊文本和 Markdown 消息。
+- 接收并标准化 C2C、群聊、文字子频道和频道私信消息事件。
+- 发送 C2C/群聊/文字子频道/频道私信文本和 Markdown 消息。
+- 支持频道消息与频道私信 Embed、URL 图片和 `multipart/form-data` 图片直传。
 - 支持 C2C 流式消息、富媒体上传、Ark、Markdown 模板和消息键盘。
 - 支持 C2C/群聊/频道消息撤回、互动响应、Reaction、置顶、公告、日程、论坛和音频控制。
-- 支持机器人菜单/面板、群聊审批与禁言，以及 Guild/Channel/成员/角色/权限管理。
+- 支持机器人菜单/面板、群聊审批与禁言、群成员/黑名单管理，以及 Guild/Channel/成员/角色/权限管理。
 - 标准化互动、好友/群关系、消息状态和资源变更事件。
 - `QQBotCluster` 自动创建并管理多分片 Gateway 实例。
+- 插件使用彼此隔离的有界固定线程池，框架统一管理过载和关闭生命周期。
 - 分级控制台日志记录传输生命周期、事件路由、插件捕获/完成和处理耗时。
 - 命令监听器支持多前缀、参数拆分、优先级和事件传播控制。
 - 原始事件、指定事件类型、标准化消息三种监听方式。
@@ -65,12 +67,10 @@ public class Main {
                 .build();
 
         QQBot bot = QQBot.create(config)
-                .onMessage(event -> event.replyText("收到：" + event.content())
-                        .exceptionally(error -> {
-                            error.printStackTrace();
-                            return null;
-                        }))
                 .onError("main-error-handler", Throwable::printStackTrace);
+
+        bot.plugin("echo").onMessageAsync(event ->
+                event.replyText("收到：" + event.content()));
 
         Runtime.getRuntime().addShutdownHook(new Thread(bot::close));
         bot.startWebSocket().join();
@@ -97,11 +97,15 @@ public class Main {
 
 ## 当前边界
 
-- 暂不支持频道消息发送、标准化接收和频道私信；频道消息撤回、Reaction 以及频道资源、权限和内容管理 API 已提供。
-- Embed 属于频道消息载荷，因此随频道消息能力一并排除。
+- 群成员列表、详情、批量移除和黑名单接口在官方文档中标记为“内邀接入”，能否调用取决于机器人白名单和控制台权限。
+- 频道私信仅对符合官方机器人类型和共同频道条件的会话开放；私信沙箱、主动消息额度和频道消息限频由平台执行。
 - 框架不做业务级消息去重。QQ 可能重复推送同一消息，应用应结合消息 ID 和场景索引实现幂等。
-- 事件监听器在接收线程中同步执行，耗时任务应自行转交业务线程池。
+- `QQBot.Plugin` 监听器默认在插件独享线程池中并发执行，不保证事件完成顺序；共享状态必须保证线程安全。
 - 未使用真实机器人凭证执行端到端测试；协议行为以 QQ 官方平台实际响应为准。
+
+## 线程语义变更
+
+插件回调不再运行于 Gateway 或 Webhook 接收线程。`dispatch()` 返回只表示事件已经完成路由和任务投递，不表示插件处理完成。同步回调和 `on*Async` 回调都会先进入插件线程池；异步回调返回的 `CompletionStage` 会继续被框架跟踪。依赖同步副作用的调用方应等待自己的 Future、latch 或业务状态。
 
 ## 构建和测试
 
@@ -120,6 +124,9 @@ mvn clean test
 - [通用数据结构与 Intents](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/event-emit/payload.html)
 - [发送单聊消息](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_messages.post.html)
 - [发送群聊消息](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_messages.post.html)
+- [发送频道消息](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/send.html)
+- [频道私信](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/dms.html)
+- [官方变更记录](https://bot.q.qq.com/wiki/develop/api-v2/changelog.html)
 - 官方 SDK：[botgo](https://github.com/tencent-connect/botgo)、[botpy](https://github.com/tencent-connect/botpy)、[bot-node-sdk](https://github.com/tencent-connect/bot-node-sdk)
 - JVM 参考：[zimoyin/qqbot-sdk](https://github.com/zimoyin/qqbot-sdk)、[Kloping/qqpd-bot-java](https://github.com/Kloping/qqpd-bot-java)
 
