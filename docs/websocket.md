@@ -1,55 +1,65 @@
-# WebSocket 生命周期
+# WebSocket 使用指南
 
-## 连接流程
+WebSocket 适合常驻机器人进程。框架会处理 Gateway 鉴权、心跳、会话恢复和断线重连。
 
-框架启动后的主要流程：
+## 启动
 
-1. 通过 Access Token 调用 `/gateway/bot` 获取 WSS 地址；
-2. 建立 WebSocket；
-3. 收到 `op=10 Hello`，读取 `heartbeat_interval`；
-4. 首次连接发送 `op=2 Identify`；
-5. 收到 `READY`，保存 `session_id` 并完成 `startWebSocket()` 返回的 Future；
-6. 按服务端周期发送 `op=1 Heartbeat`，携带最新序列号；
-7. 断线后优先使用 `op=6 Resume`，会话无效时重新 Identify。
+```java
+BotConfig config = BotConfig.builder()
+        .appId(appId)
+        .clientSecret(clientSecret)
+        .intents(Intents.GROUP_AND_C2C_EVENT)
+        .build();
 
-## Opcode 处理
+QQBot bot = QQBot.create(config);
+bot.onError(Throwable::printStackTrace);
+bot.startWebSocket().join();
+```
 
-| Opcode | 行为 |
-| --- | --- |
-| `0 Dispatch` | 转换为 `QQEvent` 并分发 |
-| `1 Heartbeat` | 立即发送心跳响应 |
-| `7 Reconnect` | 主动关闭当前连接并重连 |
-| `9 Invalid Session` | 清除 Session 和序列号，重新 Identify |
-| `10 Hello` | 创建心跳任务，发送 Identify 或 Resume |
-| `11 Heartbeat ACK` | 确认心跳成功，不向业务层分发 |
+`startWebSocket()` 返回的 Future 在首次 READY 时完成。应用应在此后保持运行，并在停止时调用 `bot.close()`。
 
-收到 Dispatch 后，WebSocket 回调线程只完成模型转换、监听器匹配和插件任务投递，随后立即请求下一帧。任务成功入队不等于业务处理成功；插件最终状态通过完成/失败日志和错误通道观察。
+## 事件订阅
 
-## 重连策略
+`intents` 必须覆盖需要接收的事件。常用标记包括：
 
-重连从 `reconnectInitialDelay` 开始，每次失败后翻倍，最大不超过 `reconnectMaxDelay`。成功建立网络连接后，等待时间恢复为初始值。
+- `GROUP_AND_C2C_EVENT`：群聊和 C2C；
+- `GUILD_MESSAGES`、`PUBLIC_GUILD_MESSAGES`：频道消息；
+- `DIRECT_MESSAGE`：频道私信；
+- `INTERACTION`：互动事件；
+- `GUILD_MEMBERS`：频道成员事件；
+- `FORUMS_EVENT`：论坛事件；
+- `AUDIO_ACTION`：音频事件。
 
-发生网络异常时会：
+可以使用按位或组合多个标记。机器人还需要在 QQ 开放平台拥有对应权限。
 
-- 使用框架内置分级日志记录警告；
-- 调用所有通过 `onError` 注册的错误监听器；
-- 在 Bot 未关闭时安排下一次重连。
+## 重连配置
 
-## Session 恢复
+```java
+BotConfig config = base.toBuilder()
+        .reconnectInitialDelay(Duration.ofSeconds(2))
+        .reconnectMaxDelay(Duration.ofSeconds(30))
+        .build();
+```
 
-框架只在内存中保存 `session_id` 和最新序列号。进程重启后无法 Resume，会重新 Identify。若业务需要跨进程恢复，需要扩展持久化机制；当前公开 API 尚未暴露 Session 存储接口。
+网络中断后会自动尝试恢复会话。进程重启后将建立新会话。业务处理仍需使用消息 ID 或事件 ID 做幂等，避免重连期间的重复事件造成重复写入。
 
-## 心跳边界
+## 多分片
 
-- 首次心跳携带 `d=null`；
-- 收到 Dispatch 后更新最新 `s`；
-- 心跳间隔以服务端 Hello 为准，最低按 1 秒处理；
-- 关闭 Bot 会取消心跳任务和待执行的重连任务。
+```java
+try (QQBotCluster cluster = QQBotCluster.create(config, shardCount)) {
+    cluster.onMessage(message -> handle(message));
+    cluster.onError(Throwable::printStackTrace);
+    cluster.startWebSocket().join();
+    new CountDownLatch(1).await();
+}
+```
 
-## 已知限制
+`QQBotCluster` 会为每个分片创建一个 Bot。处理器可能在多个分片并发运行，共享状态和幂等存储需要支持并发访问。
 
-- 一个 `QQBot` 实例只维护一个 Gateway 连接；
-- 多分片场景可使用 `QQBotCluster` 自动创建、启动和关闭对应的 `QQBot` 实例；
-- Session 不持久化；
-- 当前版本没有向业务层暴露连接状态机、心跳延迟和重连次数指标；
-- 尚未使用真实机器人执行长期稳定性和故障注入测试。
+## 使用须知
+
+- 一个 `QQBot` 对应一个 Gateway 连接。
+- 一个应用实例中只调用一次 `startWebSocket()`。
+- 请为 ERROR/WARN 日志设置监控，及时发现持续重连和鉴权失败。
+- 业务回调超时、拒绝和异常通过 `onError` 处理。
+- 长期运行前应完成真实机器人压测、断网恢复和停机测试。

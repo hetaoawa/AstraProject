@@ -270,7 +270,10 @@ public final class MessagePayload {
         return body.deepCopy();
     }
 
-    /** 返回适用于频道消息接口的副本，移除仅由 C2C/群聊接口使用的消息类型字段。 */
+    /**
+     * 返回适用于文字子频道或频道私信接口的副本，移除仅由 C2C/群聊接口使用的
+     * {@code msg_type}、{@code msg_seq} 和 {@code force_verify_image_resource} 字段。
+     */
     ObjectNode copyChannelNode() {
         ObjectNode copy = body.deepCopy();
         copy.remove("msg_type");

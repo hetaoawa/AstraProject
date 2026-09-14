@@ -1,6 +1,8 @@
 # 扩展 OpenAPI 与管理能力
 
-`QQBot.api()` 返回 `QQOpenApi`。它封装了 C2C/群聊扩展能力，以及频道资源、权限、内容管理、消息撤回和互动相关的官方 OpenAPI 路径、HTTP 方法、路径参数编码、鉴权和错误处理。频道/频道私信发送由 `QQBot` 提供，私信会话创建和撤回由 `QQOpenApi` 提供。管理请求体使用 Jackson `JsonNode`，以便兼容官方字段扩展；调用方无需自行拼接 URL。
+`QQBot.api()` 返回 `QQOpenApi`，可用于 C2C/群聊扩展、频道资源、权限、内容管理、消息撤回和互动操作。频道与频道私信发送使用 `QQBot`，私信会话创建和撤回使用 `QQOpenApi`。管理请求体采用 Jackson `JsonNode`，便于按官方文档填写字段。
+
+`QQOpenApi` 请求采用同步调用方式。成功时返回 `JsonNode`，预签名分片上传返回 `void`；失败时抛出 `BotApiException`。在插件回调中调用时，请求耗时计入该回调的运行超时。
 
 ## C2C 与群聊消息扩展
 
@@ -91,6 +93,6 @@ api.muteGuildMember(guildId, userId, mute);
 api.request("PATCH", "/official/path", requestBody);
 ```
 
-通用入口仍会自动附加 `QQBot` 鉴权并把非 2xx 响应转换为 `BotApiException`。它是前向兼容入口，不替代支持矩阵中的专用封装。
+通用入口会使用 Bot 鉴权，并把非 2xx 响应转换为 `BotApiException`。使用前请核对官方路径、HTTP 方法、请求体、权限和限频要求；稳定业务优先选择已有的明确命名方法。
 
 官方参考：[服务端接口](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/)、[群聊管理](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/group/)、[频道管理](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/guild/)。

@@ -1,86 +1,108 @@
 # AstraQQBot
 
-AstraQQBot 是面向 Java 21+ 的 QQ 官方机器人框架。插件作者编写普通、顺序、可阻塞的同步代码；框架负责把每次回调投递到 Java 21 虚拟线程，并统一处理并发限制、排队、60 秒默认超时、异常、取消与关闭。
+AstraQQBot 是面向 Java 21+ 的 QQ 官方机器人开发框架，提供 Bot API v2 鉴权、WebSocket、Webhook、事件订阅、消息收发、命令监听和常用 OpenAPI。
 
-## 要求
+## 环境要求
 
-- JDK 21 或更高版本（编译目标为 Java 21，不使用 preview 特性）
+- JDK 21 或更高版本
 - Maven 3.9+
 
-## 快速开始
+在项目的 `pom.xml` 中添加依赖：
+
+```xml
+<dependency>
+    <groupId>top.hetaoawa</groupId>
+    <artifactId>astra-qqbot</artifactId>
+    <version>0.2.0</version>
+</dependency>
+```
+
+## 五分钟启动机器人
+
+先在环境变量中保存机器人凭证：
+
+```text
+QQ_BOT_APP_ID=你的 AppID
+QQ_BOT_CLIENT_SECRET=你的 AppSecret
+```
+
+创建 Bot、注册消息处理器并启动 WebSocket：
 
 ```java
-BotConfig config = BotConfig.builder()
-        .appId(System.getenv("QQ_BOT_APP_ID"))
-        .clientSecret(System.getenv("QQ_BOT_APP_SECRET"))
-        .build();
+import top.hetaoawa.qqbot.BotConfig;
+import top.hetaoawa.qqbot.Intents;
+import top.hetaoawa.qqbot.QQBot;
 
-try (QQBot bot = QQBot.create(config)) {
-    QQBot.Plugin plugin = bot.plugin("hello");
-    plugin.onMessage(message -> {
-        User user = userRepository.find(message.userOpenId());
-        MessageResponse response = message.replyText("Hello " + user.name());
-    });
-    bot.startWebSocket().join();
+import java.util.concurrent.CountDownLatch;
+
+public final class Main {
+    public static void main(String[] args) throws InterruptedException {
+        BotConfig config = BotConfig.builder()
+                .appId(System.getenv("QQ_BOT_APP_ID"))
+                .clientSecret(System.getenv("QQ_BOT_CLIENT_SECRET"))
+                .intents(Intents.GROUP_AND_C2C_EVENT)
+                .build();
+
+        QQBot bot = QQBot.create(config);
+        bot.onError(Throwable::printStackTrace);
+        bot.plugin("echo").onMessage(message ->
+                message.replyText("收到：" + message.content()));
+
+        Runtime.getRuntime().addShutdownHook(new Thread(bot::close));
+        bot.startWebSocket().join();
+        new CountDownLatch(1).await();
+    }
 }
 ```
 
-`onEvent`、`onMessage`、`onInteraction`、`onRelationship`、`onMessageStatus`、`onResource`、`onCommand` 和 `onError` 都接收 `EventHandler<T>`。其 `handle` 方法返回 `void` 且声明 `throws Exception`，所以插件可直接抛出受检异常。框架会记录并送入错误通道。
+`startWebSocket().join()` 在机器人进入 READY 后返回。应用需要继续保持运行；在服务停止时调用 `bot.close()`。完整示例见 [EchoBot.java](examples/EchoBot.java)。
 
-## 执行模型
+## 常用能力
 
-- Gateway/Webhook 线程只解析、匹配和投递，`dispatch` 不等待业务回调。
-- 每个插件拥有独立的 `newThreadPerTaskExecutor`，线程由 `Thread.ofVirtual()` 创建并命名为 `astraqqbot-plugin-{shardId}-{pluginName}-*`。
-- 默认每插件最多并发 256 个任务、排队 512 个任务。接收线程不会等待许可；队列满立即以 `RejectedExecutionException` 拒绝，也绝不回退到接收线程执行。
-- 每次调用都有 `QUEUED/RUNNING/SUCCEEDED/FAILED/TIMED_OUT/CANCELLED` 原子状态以及事件和时间元数据。
-- 默认超时 60 秒，只计算进入 `RUNNING` 后的回调时间，不包括排队。
-- 同名插件句柄共享 runtime；任一句柄关闭都会关闭整个同名插件。关闭后可用同名创建全新 runtime，旧监听器不会保留。
+插件回调使用 `EventHandler<T>`，可以直接执行数据库、文件和同步 HTTP 操作，也可以抛出受检异常：
 
 ```java
-BotConfig config = BotConfig.builder()
-        .appId("...")
-        .clientSecret("...")
-        .pluginTaskTimeout(Duration.ofSeconds(60))
-        .maxConcurrentTasks(256)
-        .maxPendingTasks(512)
-        .pluginShutdownTimeout(Duration.ofSeconds(30))
-        .build();
-
-QQBot.Plugin slower = bot.plugin("reports", PluginExecutionOptions.builder()
-        .taskTimeout(Duration.ofMinutes(3))
-        .maxConcurrentTasks(32)
-        .maxPendingTasks(100)
-        .build());
-
-QQBot.Plugin noTimeout = bot.plugin("stream", PluginExecutionOptions.builder()
-        .disableTaskTimeout()
-        .build());
+bot.plugin("orders").onCommand("status", 100, false, command -> {
+    Order order = orderService.find(command.argument(0));
+    command.replyText(order.status());
+});
 ```
 
-`Duration.ZERO` 不是禁用标记，会被拒绝；禁用必须显式调用 `disableTaskTimeout()`。
-
-## 同步消息与 OpenAPI
-
-普通插件 API 同步返回结果，并在失败时抛出异常：
+消息和 OpenAPI 方法会同步返回结果：
 
 ```java
 MessageResponse sent = bot.sendPrivateMessage(userOpenId, "Hello");
 MessageResponse reply = message.replyText("收到");
-JsonNode member = bot.api().getGroupMember(groupId, memberId);
+JsonNode member = bot.api().getGroupMember(groupOpenId, memberOpenId);
 ```
 
-框架生命周期方法 `startWebSocket()` 仍返回 `CompletableFuture<Void>`，它在 READY 时完成。插件若主动调用第三方 fire-and-forget 异步 API 后立即返回，框架无法自动发现该任务；应优先使用同步 API，或在回调内显式等待其结果。
+## 使用须知
 
-## 关闭与取消
+- 同一插件的普通回调可能并发执行。共享集合、缓存和业务状态需要保证线程安全。
+- 回调默认最多运行 60 秒。耗时任务可为插件单独调整超时。
+- 每个插件默认允许 256 个并发回调和 512 个等待任务。容量用尽时会报告 `RejectedExecutionException`。
+- 同名插件句柄共享监听器作用域和执行配置。重复创建时需要传入相同的 `PluginExecutionOptions`。
+- `plugin.close()` 会关闭同名插件的整个作用域；`bot.close()` 会关闭所有连接和插件。
+- 第三方异步任务需要在回调返回前等待完成，否则框架无法记录它的最终结果。
+- 消息事件可能重复到达。涉及扣款、发货、写库等操作时，必须使用消息 ID 或事件 ID 做幂等控制。
+- AppSecret 只能通过环境变量或密钥管理服务注入，禁止写入源码、日志和公开配置。
 
-```java
-plugin.close();
-boolean closing = plugin.isClosing();
-boolean closed = plugin.isClosed();
-```
+## 文档
 
-插件关闭会先移除监听器并拒绝新任务，取消排队任务，然后等待运行任务；超过 `pluginShutdownTimeout` 后中断虚拟线程。`QQBot.close()` 先停止 Gateway/Webhook，再按相同规则关闭全部插件，最后关闭超时调度器和 HTTP 资源。两种 `close()` 都幂等。
+- [入门教程](docs/getting-started.md)
+- [配置项](docs/configuration.md)
+- [插件开发](docs/plugin-quick-start.md)
+- [运行规则与使用边界](docs/architecture.md)
+- [事件与消息模型](docs/events.md)
+- [命令监听器](docs/commands.md)
+- [发送与回复消息](docs/messages.md)
+- [扩展 OpenAPI](docs/open-api.md)
+- [日志与错误处理](docs/logging.md)
+- [WebSocket 使用指南](docs/websocket.md)
+- [Webhook 部署指南](docs/webhook.md)
+- [功能支持列表](docs/support-matrix.md)
+- [故障排查](docs/troubleshooting.md)
 
-超时和关闭只能通过 `Thread.interrupt()` 进行协作式取消。框架不使用也禁止 `Thread.stop()`，因此无法安全强杀忽略中断的无限循环或本地阻塞代码。虚拟线程也不是无限资源；插件共享可变状态仍必须线程安全。
+## 许可证
 
-更多文档见 [docs/getting-started.md](docs/getting-started.md)、[docs/architecture.md](docs/architecture.md)、[docs/configuration.md](docs/configuration.md) 和 [docs/plugin-quick-start.md](docs/plugin-quick-start.md)。
+个人学习、研究、实验、爱好和其他非商业用途适用 [PolyForm Noncommercial License 1.0.0](LICENSE)。商业或营利用途需要取得单独书面授权，详情见 [商业授权说明](COMMERCIAL-LICENSE.md)。

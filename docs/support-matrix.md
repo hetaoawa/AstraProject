@@ -1,17 +1,17 @@
 # 框架支持功能列表
 
-本文档按 QQ 官方 Bot API v2 文档目录核对 AstraQQBot 的实现进度，记录时间为 **2026-09-12**，对应官方文档站点 `v1.30.0`。这里的“官方已开放”指官方开发文档当前列出的服务端接口、事件和消息能力；“框架支持”只统计本项目已经提供的 Java API，不把用户通过 `JsonNode` 自行扩展请求体视为完整封装。
+本文档列出 AstraQQBot 已提供的 QQ Bot API v2 能力。官方能力清单核对于 **2026-09-12**，当时文档站点版本为 `v1.30.0`；项目 API 复核于 **2026-09-14**。实际可用范围取决于机器人类型、控制台权限、平台审核和接口限频。
 
 官方入口：[启动接入](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/getting-started.html)、[API v2 开发文档](https://bot.q.qq.com/wiki/develop/api-v2/)。
 
 ## 总览
 
-| 官方能力域 | 框架状态 | 当前实现 |
+| 能力域 | 状态 | 可用方式 |
 | --- | --- | --- |
 | AppID/AppSecret、Access Token | ✅ 已支持 | `BotConfig` 配置凭证，自动获取并缓存 Access Token |
-| WebSocket Gateway | ✅ 已支持 | 获取 Gateway、Identify、Resume、心跳、序列号、断线指数退避重连 |
+| WebSocket Gateway | ✅ 已支持 | `startWebSocket()`，支持心跳、会话恢复和断线重连 |
 | Webhook 回调 | ✅ 已支持 | 地址验证、Ed25519 验签、事件 ACK；生产环境需自行在前置网关终止 TLS |
-| 原始事件接收 | ✅ 已支持 | `QQEvent` 保留 `op`、`type`、`data`、`raw`，支持全局和按事件类型监听 |
+| 原始事件接收 | ✅ 已支持 | `onEvent(...)`、`QQEvent.data()`、`QQEvent.raw()` |
 | C2C/单聊消息 | ✅ 已支持 | 接收 `C2C_MESSAGE_CREATE`，发送文本/Markdown，支持被动回复 |
 | 群聊消息 | ✅ 已支持 | 接收 `GROUP_AT_MESSAGE_CREATE`、`GROUP_MESSAGE_CREATE`，发送文本/Markdown，支持被动回复 |
 | 频道消息发送、标准化接收与频道私信 | ✅ 已支持 | 频道/私信发送、自动回复、会话创建、撤回，以及 `AT_MESSAGE_CREATE`、`MESSAGE_CREATE`、`DIRECT_MESSAGE_CREATE` 标准化接收 |
@@ -20,16 +20,16 @@
 | 机器人、群聊、Guild/Channel 管理 | ✅ 已支持 | 菜单、面板、群资料/审批/禁言/成员/黑名单、Guild/Channel、成员、角色和权限 API |
 | 互动事件、好友/群关系事件、消息状态事件 | ✅ 已支持 | 提供 `QQInteractionEvent`、`QQRelationshipEvent`、`QQMessageStatusEvent` 和专用监听器 |
 | Guild/Channel、论坛和音频资源事件 | ✅ 已支持 | 提供 `QQResourceEvent` 和 `onResource` 监听器 |
-| 多分片运行与分片调度 | ✅ 已支持 | `QQBotCluster` 自动创建、启动和关闭全部分片实例 |
+| 多分片运行 | ✅ 已支持 | 使用 `QQBotCluster` 创建、启动和关闭全部分片 |
 
 ## 已支持能力
 
 ### 接入与鉴权
 
 - `BotConfig` 支持 AppID、AppSecret、API 地址、Access Token 地址和 User-Agent。
-- `AccessTokenManager` 自动申请、缓存并在过期后刷新 Access Token。
+- Access Token 会自动申请、缓存和刷新。
 - `QQBot.startWebSocket()` 启动 Gateway；`QQBot.startWebhook()` 启动本地回调服务。
-- `WebhookServer` 实现官方回调地址验证、Ed25519 签名校验和回调响应。
+- `WebhookServer` 支持地址验证、Ed25519 签名校验和事件 ACK。
 
 对应官方参考：[获取访问凭证](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/access-token.html)、[事件订阅与通知](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/event-emit/)、[签名校验](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/sign.html)。
 
@@ -37,7 +37,7 @@
 
 - 原始事件通过 `onEvent(EventHandler<QQEvent>)` 或 `onEvent(type, listener)` 接收。
 - 标准化消息通过 `onMessage(EventHandler<QQMessageEvent>)` 接收；处理器可以直接抛出异常。
-- 事件处理器由插件专属的 Java 21 虚拟线程执行器托管，并受并发、排队、超时和关闭策略约束。
+- 监听器支持并发、排队、超时和关闭配置；不同业务可使用不同插件名称隔离容量。
 - 当前标准化消息事件为：
   - `C2C_MESSAGE_CREATE`
   - `GROUP_AT_MESSAGE_CREATE`
@@ -62,7 +62,8 @@ Guild/Channel 资源管理、频道消息和私信、频道公告/置顶/日程/
 
 ## 判断口径与边界
 
-1. 官方文档列出的能力不等于所有机器人默认拥有权限；订阅位图、机器人类型、场景权限和平台策略仍会影响实际可用性。
-2. 框架当前的原始事件分发有利于提前接入新事件，但不会自动完成字段校验、事件去重、资源模型转换或专用 API 封装。
-3. 频道 JSON 消息与 multipart 图片由框架封装；其他未来新增的 multipart 文件字段仍需按官方接口定义扩展。
-4. 该列表是实现进度清单，不是 QQ 官方能力的完整 API 参考；新增功能时应同步更新本文件和对应的 API 文档链接。
+1. 使用接口前，请在 QQ 开放平台确认机器人类型、订阅位图、场景权限和审核状态。
+2. 原始事件需要由应用自行校验字段并实施事件去重。
+3. 新增的请求字段可先通过 `JsonNode`、`MessagePayload.put`、`set` 或 `raw` 接入。
+4. 新增 multipart 文件字段需要按照官方接口定义扩展。
+5. 参数格式、权限和限频规则以 QQ 官方文档及接口响应为准。

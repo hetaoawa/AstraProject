@@ -6,7 +6,7 @@
 
     <groupId>top.hetaoawa</groupId>
     <artifactId>astra-qqbot</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <name>AstraQQBot</name>
     <description>A small Java SDK for QQ Official Bot WebSocket, Webhook and messaging APIs.</description>
     <url>https://github.com/hetaoawa/AstraProject</url>

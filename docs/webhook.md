@@ -1,21 +1,31 @@
-# Webhook 部署与安全
+# Webhook 部署指南
 
-## 工作方式
+Webhook 适合已有 HTTP 服务入口、需要由 QQ 平台主动回调的部署方式。内置 `WebhookServer` 提供地址验证、Ed25519 签名校验和事件 ACK。
 
-内置 `WebhookServer` 基于 JDK `HttpServer`，处理：
+## 启动服务
 
-- `op=13` 回调地址验证；
-- 普通事件的 Ed25519 签名验证；
-- `op=12` HTTP Callback ACK；
-- 与 WebSocket 共用的 `QQEvent` 和 `QQMessageEvent` 分发流程。
-
-默认监听：
+默认监听地址为：
 
 ```text
 http://127.0.0.1:8080/qqbot/events
 ```
 
-QQ 平台要求配置 HTTPS 回调地址。内置服务器不直接处理 TLS，生产环境应使用反向代理。
+可通过 `BotConfig` 修改：
+
+```java
+BotConfig config = BotConfig.builder()
+        .appId(appId)
+        .clientSecret(clientSecret)
+        .webhookAddress("127.0.0.1", 8080)
+        .webhookPath("/qqbot/events")
+        .build();
+
+QQBot bot = QQBot.create(config);
+bot.onError(Throwable::printStackTrace);
+WebhookServer server = bot.startWebhook();
+```
+
+QQ 开放平台要求公网回调地址使用 HTTPS。生产环境应让内置服务监听回环地址，并在前方配置反向代理。
 
 ## Nginx 示例
 
@@ -37,47 +47,38 @@ server {
 }
 ```
 
-QQ 开放平台中填写：
+在 QQ 开放平台填写：
 
 ```text
 https://bot.example.com/qqbot/events
 ```
 
-## 请求验签
+## 安全要求
 
-普通回调必须携带：
+- 回调只接受 POST 请求。
+- 请求体上限为 2 MiB。
+- 普通事件必须携带 `X-Signature-Ed25519` 和 `X-Signature-Timestamp`。
+- 反向代理必须原样转发请求体；压缩、重新编码或格式化 JSON 会导致验签失败。
+- AppSecret 必须存放在密钥管理服务或受保护的环境变量中。
+- 内置服务建议只监听 `127.0.0.1`，公网入口交给 HTTPS 反向代理。
 
-- `X-Signature-Ed25519`
-- `X-Signature-Timestamp`
+地址验证请求可缺少签名头。它携带签名头时，框架仍会执行验签。
 
-框架按官方算法，用 AppSecret 重复截取为 32 字节 seed，派生 Ed25519 公钥，并验证 `timestamp + 原始 HTTP body`。验签失败返回 HTTP 401，事件不会进入监听器。
+## 回调处理
 
-`op=13` 地址验证在官方示例中可能没有上述签名头，因此当前实现允许验证请求缺少签名；如果验证请求包含两个签名头，则仍会执行验签。
-
-## 回调响应顺序
-
-普通事件先返回：
+框架会向普通事件返回：
 
 ```json
 {"op":12}
 ```
 
-随后完成事件路由并将监听器任务投递到各插件执行器。Webhook 请求线程不执行插件业务，也不等待业务完成；HTTP ACK、任务成功入队和业务最终成功是三个独立状态。
+ACK 表示回调已被接收。插件处理结果请通过业务状态、日志和 `onError` 观察。平台可能重试事件，涉及写库、支付、发货和通知时必须做好幂等。
 
-## 网络限制
+## 生产检查清单
 
-- 只接受 POST；其他方法返回 405；
-- 请求体上限为 2 MiB，超出返回 413；
-- 非 JSON 对象返回 400；
-- 验签失败返回 401；
-- 内部异常尝试返回 500，并通过 `onError` 通知应用。
-
-## 生产建议
-
-- 仅在回环地址监听，让反向代理成为唯一入口；
-- 使用可信 CA 签发的证书并自动续期；
-- 不要在代理层修改请求 body，否则签名验证会失败；
-- 为回调路径设置独立访问日志，但不要记录 AppSecret；
-- 限制请求体大小和连接超时；
-- 对业务处理实施去重、超时和隔离；
-- 监控 4xx/5xx、验签失败和平台重试量。
+- 使用可信 CA 证书并配置自动续期；
+- 限制回调路径、请求体大小和连接超时；
+- 监控 4xx/5xx、验签失败、回调延迟和平台重试量；
+- 避免在访问日志中记录请求体、AppSecret 和签名；
+- 对消息 ID 或事件 ID 建立带过期时间的去重记录；
+- 在发布前完成地址验证、错误签名、超大请求和重复事件测试。

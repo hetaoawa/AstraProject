@@ -1,13 +1,10 @@
 /**
- * Java 21 QQ Bot framework with managed synchronous plugin callbacks.
+ * 面向 Java 21+ 的 QQ 官方机器人开发框架。
  *
- * <p>Every plugin callback is dispatched away from Gateway/Webhook receive threads and runs on a
- * framework-owned virtual thread. The framework applies per-plugin bounded concurrency and queueing,
- * a 60-second default running-task timeout, exception reporting, cooperative cancellation and
- * idempotent shutdown. Callback code may block normally and may throw checked exceptions.</p>
+ * <p>插件通过同步回调处理事件，可以直接执行数据库、文件和 HTTP 操作，也可以抛出受检异常。
+ * 普通回调可能并发运行；共享状态需要保证线程安全，耗时操作需要设置超时并响应线程中断。</p>
  *
- * <p>High-level message and OpenAPI operations return their result synchronously. Lifecycle methods
- * such as WebSocket startup may still expose futures. Interruption is cooperative: code that ignores
- * interruption cannot be safely force-stopped, and this framework never uses {@link Thread#stop()}.</p>
+ * <p>消息发送和 OpenAPI 方法同步返回结果。WebSocket 启动方法返回 Future，并在首次 READY 时完成。
+ * 应用停止时应调用 {@link top.hetaoawa.qqbot.QQBot#close()} 释放连接和插件资源。</p>
  */
 package top.hetaoawa.qqbot;

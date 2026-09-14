@@ -28,6 +28,6 @@ public final class Intents {
     /** 公域 Guild 消息事件。 */
     public static final long PUBLIC_GUILD_MESSAGES = 1L << 30;
 
-    /** The first-round default: private and group/C2C events, without channel events. */
+    /** 默认订阅范围：群聊和 C2C 消息事件。 */
     public static final long PRIVATE_AND_GROUP = GROUP_AND_C2C_EVENT;
 }

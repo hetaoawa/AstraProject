@@ -108,7 +108,10 @@ public final class QQBot implements AutoCloseable {
         return plugin(pluginName, PluginExecutionOptions.defaults(config));
     }
 
-    /** 创建使用指定执行配置的插件注册作用域。 */
+    /**
+     * 创建使用指定执行配置的插件注册作用域。同名句柄共享一个插件作用域，
+     * 再次获取时需要传入与首次创建相同的配置。
+     */
     public synchronized Plugin plugin(String pluginName, PluginExecutionOptions options) {
         if (closed.get()) {
             throw new IllegalStateException("QQBot is closed");

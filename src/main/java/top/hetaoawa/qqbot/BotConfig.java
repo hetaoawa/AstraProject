@@ -128,7 +128,7 @@ public final class BotConfig {
         return httpExecutorThreads;
     }
 
-    /** 返回每个插件默认允许同时运行的虚拟线程任务数。 */
+    /** 返回每个插件默认允许同时运行的回调数。 */
     public int maxConcurrentTasks() {
         return maxConcurrentTasks;
     }
@@ -138,7 +138,7 @@ public final class BotConfig {
         return maxPendingTasks;
     }
 
-    /** Returns the default timeout for one running plugin callback. */
+    /** 返回单次插件回调的默认运行超时。 */
     public Duration pluginTaskTimeout() {
         return pluginTaskTimeout;
     }
@@ -352,7 +352,7 @@ public final class BotConfig {
             return this;
         }
 
-        /** 设置每个插件默认允许同时运行的虚拟线程任务数。 */
+        /** 设置每个插件默认允许同时运行的回调数。 */
         public Builder maxConcurrentTasks(int value) {
             this.maxConcurrentTasks = value;
             return this;
@@ -364,7 +364,7 @@ public final class BotConfig {
             return this;
         }
 
-        /** Sets the global default timeout for each running plugin callback. */
+        /** 设置单次插件回调的默认运行超时。 */
         public Builder pluginTaskTimeout(Duration value) {
             this.pluginTaskTimeout = value;
             return this;

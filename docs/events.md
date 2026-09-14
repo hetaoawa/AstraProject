@@ -1,6 +1,6 @@
 # 事件与消息模型
 
-框架提供三层事件接口，应用可按需要选择。
+框架提供原始事件、指定类型事件和标准化事件三种用法。常见业务优先使用标准化事件；需要读取新字段或尚未建模的事件时使用原始 JSON。
 
 ## 原始事件
 
@@ -33,7 +33,7 @@ plugin.onEvent("FRIEND_ADD", event -> {
 });
 ```
 
-类型监听器先执行，随后执行全局原始事件监听器。
+指定类型监听器会优先安排，全局原始事件监听器随后安排。回调可能并发运行，请勿依赖它们的开始或完成顺序。
 
 ## 标准化消息事件
 
@@ -91,7 +91,7 @@ String authToken = message.scene().extension("auth_token");
 
 ## 去重和幂等
 
-平台可能重复投递相同消息。框架当前不保存消息状态，也不自动去重。应用应选择稳定键写入 Redis、数据库或本地缓存，并设置合理的过期时间。
+平台可能重复投递相同消息。应用必须自行去重，可将稳定键写入 Redis、数据库或本地缓存，并设置合理的过期时间。
 
 对当前消息结构，至少考虑：
 
@@ -99,7 +99,7 @@ String authToken = message.scene().extension("auth_token");
 - `scene().extension("msg_idx")`；
 - 必要时组合 `eventType()` 和目标 OpenID。
 
-插件监听器会被投递到插件独享的 Java 21 虚拟线程执行器，同一插件内可并发执行且不保证完成顺序。监听器异常会被记录，不会中断其他普通监听器。队列满时任务以 `RejectedExecutionException` 被拒绝，并通过错误监听器报告；业务写操作仍须使用事件 ID 或消息 ID 保证幂等。
+同一插件的普通监听器可能并发运行。共享状态需要保证线程安全，业务写操作需要使用事件 ID 或消息 ID 保证幂等。监听器异常和容量不足会通过 Bot 错误通道报告，可使用 `onError` 统一处理。
 
 ## 扩展事件模型
 
@@ -119,4 +119,4 @@ plugin.onResource(event -> System.out.println(event.resourceId()));
 | `onMessageStatus` | `QQMessageStatusEvent` | 订阅消息状态和消息审核状态 |
 | `onResource` | `QQResourceEvent` | Guild、Channel、成员、论坛和音频资源事件 |
 
-所有标准化模型仍保留 `data()` 和 `raw()`，新增字段可以在模型升级前直接读取。
+标准化模型同时提供 `data()` 和 `raw()`。官方增加字段后，可以先从原始 JSON 中读取。
