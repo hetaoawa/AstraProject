@@ -99,14 +99,14 @@ String authToken = message.scene().extension("auth_token");
 - `scene().extension("msg_idx")`；
 - 必要时组合 `eventType()` 和目标 OpenID。
 
-插件监听器会被投递到插件独享线程池，同一插件内可并发执行且不保证完成顺序。监听器异常会被记录，不会中断其他普通监听器。队列满时任务以 `RejectedExecutionException` 被拒绝，并通过错误监听器报告；业务写操作仍须使用事件 ID 或消息 ID 保证幂等。
+插件监听器会被投递到插件独享的 Java 21 虚拟线程执行器，同一插件内可并发执行且不保证完成顺序。监听器异常会被记录，不会中断其他普通监听器。队列满时任务以 `RejectedExecutionException` 被拒绝，并通过错误监听器报告；业务写操作仍须使用事件 ID 或消息 ID 保证幂等。
 
 ## 扩展事件模型
 
 除消息事件外，框架还提供以下标准化监听器：
 
 ```java
-plugin.onInteractionAsync(event -> event.respond(0));
+plugin.onInteraction(event -> event.respond(0));
 plugin.onRelationship(event -> System.out.println(event.eventType()));
 plugin.onMessageStatus(event -> System.out.println(event.status()));
 plugin.onResource(event -> System.out.println(event.resourceId()));

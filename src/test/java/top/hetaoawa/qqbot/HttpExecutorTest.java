@@ -10,13 +10,11 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -58,7 +56,7 @@ class HttpExecutorTest {
     }
 
     @Test
-    void blockingRequestsUseAndReuseDedicatedExecutor() throws Exception {
+    void synchronousOpenApiBlocksUntilTheResultAndPropagatesIt() throws Exception {
         BotConfig config = BotConfig.builder()
                 .appId("app").clientSecret("secret")
                 .apiBaseUri(baseUrl + "/")
@@ -66,22 +64,18 @@ class HttpExecutorTest {
                 .httpExecutorThreads(1)
                 .logLevel(BotLogLevel.OFF)
                 .build();
-        Set<String> workerNames = new HashSet<>();
-
         try (QQBot bot = QQBot.create(config)) {
-            for (int i = 0; i < 3; i++) {
-                RequestGate gate = new RequestGate();
-                gates.add(gate);
-                CompletableFuture<String> worker = bot.api().request("GET", "/work", null)
-                        .thenApply(ignored -> Thread.currentThread().getName());
-                assertTrue(gate.started.await(2, TimeUnit.SECONDS));
-                gate.release.countDown();
-                workerNames.add(worker.join());
-            }
+            RequestGate gate = new RequestGate();
+            gates.add(gate);
+            AtomicReference<com.fasterxml.jackson.databind.JsonNode> result = new AtomicReference<>();
+            Thread caller = Thread.ofVirtual().start(() -> result.set(bot.api().request("GET", "/work", null)));
+            assertTrue(gate.started.await(2, TimeUnit.SECONDS));
+            assertTrue(caller.isAlive());
+            gate.release.countDown();
+            caller.join(2_000);
+            assertFalse(caller.isAlive());
+            assertTrue(result.get().path("ok").asBoolean());
         }
-
-        assertEquals(Set.of("astraqqbot-http-0-1"), workerNames);
-        assertFalse(workerNames.stream().anyMatch(name -> name.contains("ForkJoinPool")));
         assertTrue(waitUntilThreadStops("astraqqbot-http-0-1", Duration.ofSeconds(2)));
     }
 

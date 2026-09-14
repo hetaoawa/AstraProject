@@ -180,7 +180,7 @@ public final class QQMessageEvent {
     }
 
     /** 向当前消息发送文本回复。 */
-    public java.util.concurrent.CompletableFuture<MessageResponse> replyText(String content) {
+    public MessageResponse replyText(String content) {
         return bot.replyText(this, content);
     }
 

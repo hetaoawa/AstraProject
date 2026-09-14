@@ -1,75 +1,31 @@
-# 架构与线程模型
+# Architecture
 
-## 组件
+## Event path
 
-| 组件 | 职责 |
-| --- | --- |
-| `QQBot` | 公共入口、监听器注册、消息发送和生命周期管理 |
-| `BotConfig` | 不可变配置和构建期校验 |
-| `AccessTokenManager` | 获取、缓存并在过期前刷新 Access Token |
-| `HttpApiClient` | OpenAPI JSON/multipart 请求、鉴权头和错误转换 |
-| `GatewayClient` | WebSocket 状态、心跳、Session、重连和事件分发 |
-| `WebhookServer` | HTTP 回调、地址验证、验签和 ACK |
-| `QQEvent` | 协议级原始事件 |
-| `QQMessageEvent` | C2C、群聊、频道和频道私信消息的标准化视图 |
-| `MessagePayload` | 可扩展的消息请求构造器 |
+1. Gateway/Webhook receives and parses an event.
+2. Dispatch matches typed, generic, message, command, interaction, relationship, status and resource handlers.
+3. Each match becomes a managed plugin task and is submitted without blocking the receive thread.
+4. A per-plugin `Executors.newThreadPerTaskExecutor` starts a named Java 21 virtual thread when concurrency permits.
+5. The callback returns, throws, times out, or is cancelled; exactly one atomic terminal transition performs logging, error reporting, bookkeeping and queue advancement.
 
-## 共享事件通道
+Tasks carry plugin name, handler name, event type/id, queued/start/end times, queue duration, execution duration and final state. States are `QUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, `TIMED_OUT`, and `CANCELLED`.
 
-WebSocket 和 Webhook 都会构造 `QQEvent`，再进入 `QQBot.dispatch`。因此应用层监听代码无需区分事件来自哪种传输方式。
+## Backpressure and isolation
 
-同一 Bot 不应同时启用 WebSocket 和 Webhook 来订阅同一批事件，否则业务可能处理重复事件。平台接入模式和应用部署结构应保持一致。
+Each plugin has independent active-task and bounded-pending limits. Defaults are 256 concurrent and 512 pending. Queue admission uses only a short state lock; receive threads never wait on a semaphore. A full queue is rejected immediately and never uses caller-runs behavior. One plugin's saturation or failure does not execute in, or stop, another plugin.
 
-## 线程模型
+## Timeout and command ordering
 
-- Gateway 建连和 OpenAPI 异步包装使用每个 Bot 自有的固定 HTTP 执行器；
-- Gateway 心跳与重连使用单线程守护调度器；
-- JDK WebSocket 回调线程只负责解析、路由和向插件执行器投递任务；
-- Webhook 使用缓存线程池，每个请求在线程池线程中处理；
-- 每个 `QQBot.Plugin` 拥有独立的有界固定线程池，默认 2 个线程和 256 个排队任务；
-- 消息发送返回 Future，调用方负责观察成功或失败。
+Task timeout starts immediately before invoking the handler, not while queued. Timeout atomically wins the terminal state, reports a detailed `TimeoutException`, and interrupts the virtual thread. Late success/failure is ignored.
 
-插件监听器的完整回调会在插件线程中启动。普通同步回调结束时任务完成；`on*Async` 返回的 `CompletionStage` 最终完成时任务才结束。Gateway/Webhook 不等待这些任务，因此慢查询、文件处理和外部调用不会占用接收线程。
+Matching command handlers form a priority-ordered asynchronous chain. Each handler is still a normal managed task with its own timeout. Propagation is decided only after that handler returns successfully. Failure or timeout stops the chain. Ordinary message listeners continue to follow their independent routing path.
 
-```java
-bot.plugin("business").onMessage(message -> {
-    // 幂等检查、数据库访问、调用业务服务
-    handle(message);
-});
-```
+## Shutdown
 
-同一插件最多并行执行配置的线程数，事件开始和完成顺序均不保证。不同插件不共享工作线程。命令监听器是例外：匹配监听器仍按优先级串联，框架等待前一个处理 Stage 完成并检查 `continuePropagation` 后，才向下一个插件执行器投递。
+Plugin close removes all of that runtime's listeners, rejects new work, cancels queued work, waits for running callbacks, then interrupts survivors after `pluginShutdownTimeout`. Bot close first stops transports, then closes all runtimes under one shutdown deadline, their timeout schedulers, and HTTP resources. Both operations are idempotent.
 
-## 过载与关闭
+Cancellation is cooperative. `Thread.interrupt()` cannot safely terminate code that ignores interruption; `Thread.stop()` is never used.
 
-插件队列采用有界 `ArrayBlockingQueue`。队列满或 Bot 正在关闭时，新任务以 `RejectedExecutionException` 失败并进入错误报告通道；框架不会使用 `CallerRunsPolicy`，所以拒绝任务不会回到接收线程执行。
+## HTTP and tokens
 
-`QQBot.close()` 先停止 Gateway/Webhook，再同时停止所有插件执行器接收任务。所有插件共享 `pluginShutdownTimeout` 总等待预算；超时后中断工作线程并取消仍在运行或排队的框架任务，最后关闭 HTTP 执行器。
-
-插件线程名为 `astraqqbot-plugin-{shardId}-{pluginName}-{workerId}`。插件名中的特殊字符会替换为下划线。
-
-## HTTP 执行器
-
-OpenAPI 和 Gateway 建连阶段内部仍使用阻塞式 HTTP 调用，但这些调用不会进入 `ForkJoinPool.commonPool`，而是由每个 Bot 自有的固定线程池承载。线程名格式为 `astraqqbot-http-{shardId}-{workerId}`，默认最多创建 4 个工作线程，可通过 `httpExecutorThreads(int)` 调整。
-
-专用执行器随 Bot 创建并在 `QQBot.close()` 时中断、关闭。固定线程数使并发上限和线程名称保持稳定，也避免阻塞请求引起公共线程池吞吐波动。
-
-## 日志边界
-
-每个 `QQBot` 持有独立的日志级别配置。传输层记录 Gateway、Webhook 和 OpenAPI 生命周期，事件分发层记录命名监听器的捕获、完成、失败和耗时。异步监听器只有在返回的 `CompletionStage` 完成后才会记录处理完成。
-
-默认不记录事件原始载荷，也不会记录 AppSecret、Access Token、Authorization 请求头或 Webhook 签名。详见 [日志与调试](logging.md)。
-
-## 向前兼容
-
-框架只对常用消息字段做强类型映射，始终保留 `JsonNode raw`。官方增加字段时，应用可以先从原始 JSON 读取，不必等待框架发布新模型。
-
-这不保证协议完全向前兼容：字段语义变化、鉴权变更、端点迁移或 Gateway 行为变化仍可能需要升级框架。
-
-## 安全边界
-
-- AppSecret 存储和注入由宿主应用负责；
-- 框架不会把凭证明文写入日志；
-- 覆盖 API URI 时，凭证会被发送到配置的目标，必须确保目标可信；
-- Webhook 验签依赖收到的原始请求体；
-- 业务数据持久化、权限控制和内容合规不属于框架职责。
+Public business APIs block synchronously, which is appropriate on virtual threads. The internal HTTP executor remains bounded for Java HTTP request isolation and Gateway lifecycle work. Access-token refresh uses explicit lock/condition single-flight coordination: shared state is checked under lock, the network request runs outside it, and concurrent callers share the completed refresh.

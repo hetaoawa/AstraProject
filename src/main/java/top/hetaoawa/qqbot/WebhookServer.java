@@ -14,12 +14,12 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
 /**
  * 基于 JDK 的轻量 HTTP 回调服务器。生产环境应放在 HTTPS 反向代理之后，
  * 因为 QQ 要求配置的回调地址使用 HTTPS。
  */
-/** 用于 QQ Webhook 回调和验证的内置 HTTP 服务器。 */
 public final class WebhookServer implements AutoCloseable {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
@@ -28,6 +28,7 @@ public final class WebhookServer implements AutoCloseable {
     private final BotConfig config;
     private final AstraLogger logger;
     private HttpServer server;
+    private ExecutorService requestExecutor;
 
     WebhookServer(QQBot bot, BotConfig config, AstraLogger logger) {
         this.bot = bot;
@@ -42,11 +43,9 @@ public final class WebhookServer implements AutoCloseable {
         }
         server = HttpServer.create(new InetSocketAddress(config.webhookHost(), config.webhookPort()), 0);
         server.createContext(config.webhookPath(), this::handle);
-        server.setExecutor(Executors.newCachedThreadPool(r -> {
-            Thread thread = new Thread(r, "qqbot-webhook");
-            thread.setDaemon(true);
-            return thread;
-        }));
+        requestExecutor = Executors.newThreadPerTaskExecutor(
+                Thread.ofVirtual().name("astraqqbot-webhook-" + config.shardId() + "-", 0).factory());
+        server.setExecutor(requestExecutor);
         server.start();
         logger.info("WEBHOOK", "listening address=" + config.webhookHost() + ":"
                 + config.webhookPort() + config.webhookPath());
@@ -200,6 +199,8 @@ public final class WebhookServer implements AutoCloseable {
         if (server != null) {
             server.stop(0);
             server = null;
+            requestExecutor.shutdownNow();
+            requestExecutor = null;
             logger.info("WEBHOOK", "stopped");
         }
     }

@@ -1,78 +1,92 @@
 package top.hetaoawa.qqbot;
 
-/** 单个插件执行器的不可变配置。 */
+import java.time.Duration;
+import java.util.Objects;
+import java.util.Optional;
+
+/** Immutable concurrency, backpressure and timeout overrides for one plugin. */
 public final class PluginExecutionOptions {
-    private final int threads;
-    private final int queueCapacity;
+    private final int maxConcurrentTasks;
+    private final int maxPendingTasks;
+    private final Optional<Duration> taskTimeout;
+    private final boolean taskTimeoutDisabled;
 
     private PluginExecutionOptions(Builder builder) {
-        this.threads = positive(builder.threads, "threads");
-        this.queueCapacity = positive(builder.queueCapacity, "queueCapacity");
+        this.maxConcurrentTasks = positive(builder.maxConcurrentTasks, "maxConcurrentTasks");
+        this.maxPendingTasks = nonNegative(builder.maxPendingTasks, "maxPendingTasks");
+        this.taskTimeout = Optional.ofNullable(builder.taskTimeout);
+        this.taskTimeoutDisabled = builder.taskTimeoutDisabled;
+        taskTimeout.ifPresent(timeout -> positive(timeout, "taskTimeout"));
+        if (taskTimeoutDisabled && taskTimeout.isPresent()) {
+            throw new IllegalStateException("task timeout cannot be both configured and disabled");
+        }
     }
 
-    /** 创建使用框架默认值的构建器。 */
-    public static Builder builder() {
-        return new Builder();
+    public static Builder builder() { return new Builder(); }
+
+    static PluginExecutionOptions defaults(BotConfig config) {
+        return builder().maxConcurrentTasks(config.maxConcurrentTasks())
+                .maxPendingTasks(config.maxPendingTasks()).build();
     }
 
-    static PluginExecutionOptions of(int threads, int queueCapacity) {
-        return builder().threads(threads).queueCapacity(queueCapacity).build();
-    }
+    public int maxConcurrentTasks() { return maxConcurrentTasks; }
+    public int maxPendingTasks() { return maxPendingTasks; }
+    /** Empty means inherit the bot default. */
+    public Optional<Duration> taskTimeout() { return taskTimeout; }
+    public boolean isTaskTimeoutDisabled() { return taskTimeoutDisabled; }
 
-    /** 返回插件工作线程数。 */
-    public int threads() {
-        return threads;
-    }
-
-    /** 返回插件等待队列容量。 */
-    public int queueCapacity() {
-        return queueCapacity;
+    Duration effectiveTaskTimeout(Duration globalDefault) {
+        return taskTimeoutDisabled ? null : taskTimeout.orElse(globalDefault);
     }
 
     private static int positive(int value, String name) {
-        if (value < 1) {
-            throw new IllegalArgumentException(name + " must be positive");
-        }
+        if (value < 1) throw new IllegalArgumentException(name + " must be positive");
+        return value;
+    }
+    private static int nonNegative(int value, String name) {
+        if (value < 0) throw new IllegalArgumentException(name + " must not be negative");
+        return value;
+    }
+    private static Duration positive(Duration value, String name) {
+        Objects.requireNonNull(value, name);
+        if (value.isZero() || value.isNegative()) throw new IllegalArgumentException(name + " must be positive");
         return value;
     }
 
-    @Override
-    public boolean equals(Object other) {
+    @Override public boolean equals(Object other) {
         return other instanceof PluginExecutionOptions options
-                && threads == options.threads
-                && queueCapacity == options.queueCapacity;
+                && maxConcurrentTasks == options.maxConcurrentTasks
+                && maxPendingTasks == options.maxPendingTasks
+                && taskTimeout.equals(options.taskTimeout)
+                && taskTimeoutDisabled == options.taskTimeoutDisabled;
+    }
+    @Override public int hashCode() {
+        return Objects.hash(maxConcurrentTasks, maxPendingTasks, taskTimeout, taskTimeoutDisabled);
+    }
+    @Override public String toString() {
+        return "PluginExecutionOptions[maxConcurrentTasks=" + maxConcurrentTasks
+                + ", maxPendingTasks=" + maxPendingTasks + ", taskTimeout="
+                + (taskTimeoutDisabled ? "disabled" : taskTimeout.map(Object::toString).orElse("inherited")) + "]";
     }
 
-    @Override
-    public int hashCode() {
-        return 31 * threads + queueCapacity;
-    }
-
-    @Override
-    public String toString() {
-        return "PluginExecutionOptions[threads=" + threads + ", queueCapacity=" + queueCapacity + "]";
-    }
-
-    /** {@link PluginExecutionOptions} 的构建器。 */
     public static final class Builder {
-        private int threads = 2;
-        private int queueCapacity = 256;
+        private int maxConcurrentTasks = 256;
+        private int maxPendingTasks = 512;
+        private Duration taskTimeout;
+        private boolean taskTimeoutDisabled;
 
-        /** 设置插件工作线程数。 */
-        public Builder threads(int threads) {
-            this.threads = threads;
+        public Builder maxConcurrentTasks(int value) { this.maxConcurrentTasks = value; return this; }
+        public Builder maxPendingTasks(int value) { this.maxPendingTasks = value; return this; }
+        public Builder taskTimeout(Duration value) {
+            this.taskTimeout = Objects.requireNonNull(value, "taskTimeout");
+            this.taskTimeoutDisabled = false;
             return this;
         }
-
-        /** 设置插件有界等待队列容量。 */
-        public Builder queueCapacity(int queueCapacity) {
-            this.queueCapacity = queueCapacity;
+        public Builder disableTaskTimeout() {
+            this.taskTimeout = null;
+            this.taskTimeoutDisabled = true;
             return this;
         }
-
-        /** 校验并创建不可变配置。 */
-        public PluginExecutionOptions build() {
-            return new PluginExecutionOptions(this);
-        }
+        public PluginExecutionOptions build() { return new PluginExecutionOptions(this); }
     }
 }

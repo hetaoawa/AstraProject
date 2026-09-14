@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 /** 为每个 Gateway 分片创建并管理一个 {@link QQBot} 实例。 */
 public final class QQBotCluster implements AutoCloseable {
@@ -29,21 +28,21 @@ public final class QQBotCluster implements AutoCloseable {
     public List<QQBot> bots() { return bots; }
 
     /** 在每个分片注册原始事件监听器。 */
-    public QQBotCluster onEvent(Consumer<QQEvent> listener) { bots.forEach(bot -> bot.onEvent(listener)); return this; }
+    public QQBotCluster onEvent(EventHandler<QQEvent> listener) { bots.forEach(bot -> bot.onEvent(listener)); return this; }
     /** 在每个分片注册消息监听器。 */
-    public QQBotCluster onMessage(Consumer<QQMessageEvent> listener) { bots.forEach(bot -> bot.onMessage(listener)); return this; }
+    public QQBotCluster onMessage(EventHandler<QQMessageEvent> listener) { bots.forEach(bot -> bot.onMessage(listener)); return this; }
     /** 在每个分片注册互动监听器。 */
-    public QQBotCluster onInteraction(Consumer<QQInteractionEvent> listener) { bots.forEach(bot -> bot.onInteraction(listener)); return this; }
+    public QQBotCluster onInteraction(EventHandler<QQInteractionEvent> listener) { bots.forEach(bot -> bot.onInteraction(listener)); return this; }
     /** 在每个分片注册关系事件监听器。 */
-    public QQBotCluster onRelationship(Consumer<QQRelationshipEvent> listener) { bots.forEach(bot -> bot.onRelationship(listener)); return this; }
+    public QQBotCluster onRelationship(EventHandler<QQRelationshipEvent> listener) { bots.forEach(bot -> bot.onRelationship(listener)); return this; }
     /** 在每个分片注册消息状态监听器。 */
-    public QQBotCluster onMessageStatus(Consumer<QQMessageStatusEvent> listener) { bots.forEach(bot -> bot.onMessageStatus(listener)); return this; }
+    public QQBotCluster onMessageStatus(EventHandler<QQMessageStatusEvent> listener) { bots.forEach(bot -> bot.onMessageStatus(listener)); return this; }
     /** 在每个分片注册资源监听器。 */
-    public QQBotCluster onResource(Consumer<QQResourceEvent> listener) { bots.forEach(bot -> bot.onResource(listener)); return this; }
+    public QQBotCluster onResource(EventHandler<QQResourceEvent> listener) { bots.forEach(bot -> bot.onResource(listener)); return this; }
     /** 在每个分片注册未命名错误监听器。 */
-    public QQBotCluster onError(Consumer<Throwable> listener) { bots.forEach(bot -> bot.onError(listener)); return this; }
+    public QQBotCluster onError(EventHandler<Throwable> listener) { bots.forEach(bot -> bot.onError(listener)); return this; }
     /** 在每个分片注册指定名称的错误监听器。 */
-    public QQBotCluster onError(String handlerName, Consumer<Throwable> listener) {
+    public QQBotCluster onError(String handlerName, EventHandler<Throwable> listener) {
         bots.forEach(bot -> bot.onError(handlerName, listener));
         return this;
     }

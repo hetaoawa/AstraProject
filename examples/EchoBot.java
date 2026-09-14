@@ -19,7 +19,7 @@ public final class EchoBot {
         QQBot bot = QQBot.create(config)
                 .onError(Throwable::printStackTrace);
         QQBot.Plugin echo = bot.plugin("echo");
-        echo.onMessageAsync(message -> message.replyText("收到：" + message.content()));
+        echo.onMessage(message -> message.replyText("收到：" + message.content()));
         echo.onEvent("READY", event -> System.out.println("Bot READY"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(bot::close));

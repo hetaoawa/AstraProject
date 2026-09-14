@@ -18,8 +18,9 @@ public final class BotConfig {
     private final int shardCount;
     private final Duration connectTimeout;
     private final int httpExecutorThreads;
-    private final int pluginExecutorThreads;
-    private final int pluginQueueCapacity;
+    private final int maxConcurrentTasks;
+    private final int maxPendingTasks;
+    private final Duration pluginTaskTimeout;
     private final Duration pluginShutdownTimeout;
     private final Duration reconnectInitialDelay;
     private final Duration reconnectMaxDelay;
@@ -42,8 +43,9 @@ public final class BotConfig {
         this.shardCount = builder.shardCount;
         this.connectTimeout = positive(builder.connectTimeout, "connectTimeout");
         this.httpExecutorThreads = builder.httpExecutorThreads;
-        this.pluginExecutorThreads = builder.pluginExecutorThreads;
-        this.pluginQueueCapacity = builder.pluginQueueCapacity;
+        this.maxConcurrentTasks = builder.maxConcurrentTasks;
+        this.maxPendingTasks = builder.maxPendingTasks;
+        this.pluginTaskTimeout = positive(builder.pluginTaskTimeout, "pluginTaskTimeout");
         this.pluginShutdownTimeout = positive(builder.pluginShutdownTimeout, "pluginShutdownTimeout");
         this.reconnectInitialDelay = positive(builder.reconnectInitialDelay, "reconnectInitialDelay");
         this.reconnectMaxDelay = positive(builder.reconnectMaxDelay, "reconnectMaxDelay");
@@ -65,11 +67,11 @@ public final class BotConfig {
         if (httpExecutorThreads < 1) {
             throw new IllegalArgumentException("httpExecutorThreads must be positive");
         }
-        if (pluginExecutorThreads < 1) {
-            throw new IllegalArgumentException("pluginExecutorThreads must be positive");
+        if (maxConcurrentTasks < 1) {
+            throw new IllegalArgumentException("maxConcurrentTasks must be positive");
         }
-        if (pluginQueueCapacity < 1) {
-            throw new IllegalArgumentException("pluginQueueCapacity must be positive");
+        if (maxPendingTasks < 0) {
+            throw new IllegalArgumentException("maxPendingTasks must not be negative");
         }
         if (reconnectMaxDelay.compareTo(reconnectInitialDelay) < 0) {
             throw new IllegalArgumentException("reconnectMaxDelay must not be smaller than reconnectInitialDelay");
@@ -126,14 +128,19 @@ public final class BotConfig {
         return httpExecutorThreads;
     }
 
-    /** 返回每个插件默认使用的工作线程数。 */
-    public int pluginExecutorThreads() {
-        return pluginExecutorThreads;
+    /** 返回每个插件默认允许同时运行的虚拟线程任务数。 */
+    public int maxConcurrentTasks() {
+        return maxConcurrentTasks;
     }
 
-    /** 返回每个插件默认使用的有界等待队列容量。 */
-    public int pluginQueueCapacity() {
-        return pluginQueueCapacity;
+    /** 返回每个插件默认允许排队的任务数。 */
+    public int maxPendingTasks() {
+        return maxPendingTasks;
+    }
+
+    /** Returns the default timeout for one running plugin callback. */
+    public Duration pluginTaskTimeout() {
+        return pluginTaskTimeout;
     }
 
     /** 返回关闭时等待插件任务完成的最长时间。 */
@@ -202,8 +209,9 @@ public final class BotConfig {
                 .shard(shardId, shardCount)
                 .connectTimeout(connectTimeout)
                 .httpExecutorThreads(httpExecutorThreads)
-                .pluginExecutorThreads(pluginExecutorThreads)
-                .pluginQueueCapacity(pluginQueueCapacity)
+                .maxConcurrentTasks(maxConcurrentTasks)
+                .maxPendingTasks(maxPendingTasks)
+                .pluginTaskTimeout(pluginTaskTimeout)
                 .pluginShutdownTimeout(pluginShutdownTimeout)
                 .reconnectInitialDelay(reconnectInitialDelay)
                 .reconnectMaxDelay(reconnectMaxDelay)
@@ -270,9 +278,10 @@ public final class BotConfig {
         private int shardCount = 1;
         private Duration connectTimeout = Duration.ofSeconds(20);
         private int httpExecutorThreads = 4;
-        private int pluginExecutorThreads = 2;
-        private int pluginQueueCapacity = 256;
-        private Duration pluginShutdownTimeout = Duration.ofSeconds(5);
+        private int maxConcurrentTasks = 256;
+        private int maxPendingTasks = 512;
+        private Duration pluginTaskTimeout = Duration.ofSeconds(60);
+        private Duration pluginShutdownTimeout = Duration.ofSeconds(30);
         private Duration reconnectInitialDelay = Duration.ofSeconds(2);
         private Duration reconnectMaxDelay = Duration.ofSeconds(30);
         private String webhookHost = "127.0.0.1";
@@ -343,15 +352,21 @@ public final class BotConfig {
             return this;
         }
 
-        /** 设置每个插件默认使用的工作线程数。 */
-        public Builder pluginExecutorThreads(int pluginExecutorThreads) {
-            this.pluginExecutorThreads = pluginExecutorThreads;
+        /** 设置每个插件默认允许同时运行的虚拟线程任务数。 */
+        public Builder maxConcurrentTasks(int value) {
+            this.maxConcurrentTasks = value;
             return this;
         }
 
-        /** 设置每个插件默认使用的有界等待队列容量。 */
-        public Builder pluginQueueCapacity(int pluginQueueCapacity) {
-            this.pluginQueueCapacity = pluginQueueCapacity;
+        /** 设置每个插件默认允许排队的任务数。 */
+        public Builder maxPendingTasks(int value) {
+            this.maxPendingTasks = value;
+            return this;
+        }
+
+        /** Sets the global default timeout for each running plugin callback. */
+        public Builder pluginTaskTimeout(Duration value) {
+            this.pluginTaskTimeout = value;
             return this;
         }
 

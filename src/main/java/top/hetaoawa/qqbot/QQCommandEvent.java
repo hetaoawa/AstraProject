@@ -1,7 +1,6 @@
 package top.hetaoawa.qqbot;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /** 从消息中解析出的命令调用，提供命令、参数和原始消息访问能力。 */
 public final class QQCommandEvent {
@@ -71,7 +70,7 @@ public final class QQCommandEvent {
     }
 
     /** 向触发命令的消息发送文本回复。 */
-    public CompletableFuture<MessageResponse> replyText(String content) {
+    public MessageResponse replyText(String content) {
         return message.replyText(content);
     }
 }

@@ -3,7 +3,6 @@ package top.hetaoawa.qqbot;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 /** 标准化互动事件，并提供互动响应方法。
  * @param bot 所属 Bot
@@ -47,9 +46,9 @@ public record QQInteractionEvent(
     }
 
     /** 使用指定回调码发送互动响应。 */
-    public CompletableFuture<JsonNode> respond(int code) {
+    public JsonNode respond(int code) {
         if (interactionId == null || interactionId.isBlank()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("event has no interaction id"));
+            throw new IllegalStateException("event has no interaction id");
         }
         return bot.api().respondInteraction(interactionId, code);
     }

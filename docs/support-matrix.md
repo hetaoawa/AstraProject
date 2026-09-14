@@ -35,8 +35,9 @@
 
 ### 事件与消息
 
-- 原始事件通过 `onEvent(Consumer<QQEvent>)` 或 `onEvent(type, listener)` 接收。
-- 标准化消息通过 `onMessage(Consumer<QQMessageEvent>)` 接收。
+- 原始事件通过 `onEvent(EventHandler<QQEvent>)` 或 `onEvent(type, listener)` 接收。
+- 标准化消息通过 `onMessage(EventHandler<QQMessageEvent>)` 接收；处理器可以直接抛出异常。
+- 事件处理器由插件专属的 Java 21 虚拟线程执行器托管，并受并发、排队、超时和关闭策略约束。
 - 当前标准化消息事件为：
   - `C2C_MESSAGE_CREATE`
   - `GROUP_AT_MESSAGE_CREATE`

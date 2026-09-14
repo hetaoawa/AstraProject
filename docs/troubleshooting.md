@@ -1,98 +1,27 @@
-# 故障排查
+# Troubleshooting
 
-## `appId must not be blank` 或 `clientSecret must not be blank`
+## Callback timed out
 
-环境变量未注入或名称错误。先检查当前进程是否能读取：
+The default is 60 seconds of RUNNING time per handler. Increase it with `taskTimeout` or explicitly disable it with `disableTaskTimeout()`. Queue time is not counted.
 
-```bash
-printenv QQ_BOT_APP_ID
-printenv QQ_BOT_CLIENT_SECRET
-```
+Timeout sends `Thread.interrupt()`. Ensure blocking calls react to interruption and loops check the interrupt flag. Code that ignores interruption may continue consuming resources; Java provides no safe forced termination and the framework never uses `Thread.stop()`.
 
-不要在排障截图和日志中公开 AppSecret。
+## RejectedExecutionException
 
-## Access Token 获取失败
+The plugin reached both `maxConcurrentTasks` and `maxPendingTasks`. Reduce incoming work, speed up callbacks, or carefully raise bounded limits. The callback is not executed on the Gateway/Webhook thread.
 
-检查：
+## Plugin or bot close is slow
 
-- AppID 和 AppSecret 是否属于同一个机器人；
-- 机器人是否被封禁或删除；
-- 服务器能否访问 `https://bots.qq.com`；
-- 是否覆盖了错误的 `accessTokenUri`；
-- 平台是否返回了 `err_code`、`message` 或 `trace_id`。
+`pluginShutdownTimeout` controls only shutdown waiting. Close first rejects new tasks and cancels queued tasks, then waits for running callbacks before interrupting them. It is separate from normal task timeout.
 
-## WebSocket 一直无法 READY
+## Process exits after READY
 
-检查 `onError` 输出，并重点核对：
+`startWebSocket().join()` returns when READY arrives. Keep the process alive with the hosting application's lifecycle.
 
-- intents 是否获得平台权限；
-- Gateway 返回的关闭码；
-- 机器人是否只能连接沙箱；
-- 系统时间和网络是否正常；
-- 连接创建频率是否超过平台限制。
+## Synchronous API failure
 
-`startWebSocket().join()` 在收到 READY 前会等待；网络失败时框架会持续重连，而不是立即让 Future 失败。
+Message and OpenAPI calls throw directly. Handle a known business error locally when appropriate, or let it leave the callback so the framework logs and reports it.
 
-## Webhook 地址验证失败
+## Missing completion tracking
 
-检查：
-
-- 平台访问的是 HTTPS 公网地址；
-- 反向代理路径与 `webhookPath` 完全一致；
-- 代理是否将请求转发到正确端口；
-- AppSecret 是否正确；
-- 代理是否改写了 JSON body；
-- QQ 平台允许的回调端口范围。
-
-可在代理访问日志中确认是否收到 `User-Agent: QQBot-Callback` 的 POST，但不要记录敏感请求头和凭证。
-
-## Webhook 返回 401
-
-请求签名不通过。常见原因：
-
-- AppSecret 不匹配；
-- `X-Signature-Ed25519` 或 `X-Signature-Timestamp` 被代理移除；
-- 代理、WAF 或中间件修改了原始 body；
-- 请求并非 QQ 平台发送。
-
-不要通过关闭验签解决该问题。
-
-## 消息发送 Future 异常完成
-
-展开 `CompletionException` 的 cause。若为 `BotApiException`，记录：
-
-- HTTP 状态码；
-- 平台错误码；
-- Trace ID；
-- 请求场景和目标类型，但不要记录 Access Token。
-
-常见原因包括限频、消息内容违规、没有主动消息权限、`msg_id` 过期或重复使用相同的 `msg_id + msg_seq`。
-
-## 收到重复消息
-
-这是平台至少一次投递语义下可能出现的正常情况。使用 `messageId` 和 `msg_idx` 做幂等，不要只依赖内存布尔值。
-
-## 插件任务被拒绝或没有执行
-
-若日志出现 `RejectedExecutionException` 或 `queue=256/256`，说明插件处理速度低于事件进入速度，或者 Bot 已开始关闭。依次检查：
-
-- 是否存在没有超时的外部网络、数据库或文件操作；
-- 异步监听器是否返回了永不完成的 `CompletionStage`；
-- 插件线程数与下游连接池容量是否匹配；
-- 是否需要通过 `PluginExecutionOptions` 增加线程数或队列容量；
-- 业务是否能通过事件 ID 幂等重试被拒绝的任务。
-
-框架不会在 Gateway/Webhook 线程执行被拒绝的任务，也不会使用无界队列。不要只扩大队列来掩盖持续吞吐不足。
-
-## 关闭时插件任务被中断
-
-`QQBot.close()` 在 `pluginShutdownTimeout` 内等待所有插件，超时后会中断运行任务并取消排队任务。若出现 `shutdown timed out`：
-
-- 为阻塞 I/O 设置超时并正确响应线程中断；
-- 确保插件返回的 Future 最终会完成；
-- 适当增加全局关闭超时；
-- 不要在 JVM shutdown hook 中启动新的插件任务。
-
-## 程序在 READY 后退出
-
-`startWebSocket()` 的 Future 在 READY 时完成，`join()` 随后返回。如果 `main` 没有其他非守护线程，进程会退出。由应用服务器、生命周期管理器、阻塞等待或其他合适机制保持主进程运行。
+If plugin code starts a third-party fire-and-forget asynchronous task and returns, the framework cannot discover it. Use synchronous calls or explicitly await the result.

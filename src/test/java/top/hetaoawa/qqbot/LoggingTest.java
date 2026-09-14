@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LoggingTest {
     @Test
-    void debugLogsEventCaptureAndAsyncCompletion() {
+    void debugLogsManagedTaskLifecycle() {
         PrintStream original = System.out;
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try {
@@ -23,9 +23,9 @@ class LoggingTest {
                     .appId("app").clientSecret("secret")
                     .logLevel(BotLogLevel.DEBUG)
                     .build();
-            CompletableFuture<Void> pluginWork = new CompletableFuture<>();
+            CountDownLatch release = new CountDownLatch(1);
             try (QQBot bot = QQBot.create(config)) {
-                bot.plugin("hello-plugin").onMessageAsync(ignored -> pluginWork);
+                bot.plugin("hello-plugin").onMessage(ignored -> release.await());
                 var data = JsonNodeFactory.instance.objectNode()
                         .put("id", "message-1").put("content", "/hello");
                 data.putObject("author").put("user_openid", "user-1");
@@ -33,12 +33,12 @@ class LoggingTest {
 
                 String beforeCompletion = bytes.toString(StandardCharsets.UTF_8);
                 assertTrue(beforeCompletion.contains("received type=C2C_MESSAGE_CREATE id=event-1"));
-                assertTrue(beforeCompletion.contains("captured handler=hello-plugin.message kind=message"));
-                assertFalse(beforeCompletion.contains("completed handler=hello-plugin.message"));
+                assertTrue(beforeCompletion.contains("queued plugin=hello-plugin handler=hello-plugin.message"));
+                assertFalse(beforeCompletion.contains("completed plugin=hello-plugin handler=hello-plugin.message"));
 
-                pluginWork.complete(null);
+                release.countDown();
                 assertTrue(waitUntil(() -> bytes.toString(StandardCharsets.UTF_8)
-                        .contains("completed handler=hello-plugin.message"), Duration.ofSeconds(2)));
+                        .contains("completed plugin=hello-plugin handler=hello-plugin.message"), Duration.ofSeconds(2)));
             }
         } finally {
             System.setOut(original);

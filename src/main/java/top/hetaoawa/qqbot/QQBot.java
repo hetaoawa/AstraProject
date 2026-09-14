@@ -12,20 +12,18 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 /** QQ 官方机器人 Java SDK 的核心入口。 */
@@ -50,6 +48,7 @@ public final class QQBot implements AutoCloseable {
     private final List<CommandHandler> commandListeners = new CopyOnWriteArrayList<>();
     private final Map<String, List<NamedHandler<QQEvent>>> typedListeners = new ConcurrentHashMap<>();
     private final Map<String, PluginRuntime> pluginRuntimes = new ConcurrentHashMap<>();
+    private final PluginRuntime defaultRuntime;
     private final AtomicBoolean closed = new AtomicBoolean();
     private volatile WebhookServer webhook;
 
@@ -71,10 +70,12 @@ public final class QQBot implements AutoCloseable {
         this.api = new HttpApiClient(config, httpClient, tokenManager, logger, httpExecutor);
         this.openApi = new QQOpenApi(api, config.appId());
         this.gateway = new GatewayClient(this, config, api, httpClient, logger, httpExecutor);
+        this.defaultRuntime = new PluginRuntime(this, "bot", PluginExecutionOptions.defaults(config));
         logger.info("BOT", "created shard=" + config.shardId() + "/" + config.shardCount()
                 + " intents=" + config.intents() + " httpThreads=" + config.httpExecutorThreads()
-                + " pluginThreads=" + config.pluginExecutorThreads()
-                + " pluginQueueCapacity=" + config.pluginQueueCapacity());
+                + " maxConcurrentTasks=" + config.maxConcurrentTasks()
+                + " maxPendingTasks=" + config.maxPendingTasks()
+                + " pluginTaskTimeout=" + config.pluginTaskTimeout());
     }
 
     /**
@@ -104,8 +105,7 @@ public final class QQBot implements AutoCloseable {
      * @return 插件注册作用域
      */
     public synchronized Plugin plugin(String pluginName) {
-        return plugin(pluginName, PluginExecutionOptions.of(
-                config.pluginExecutorThreads(), config.pluginQueueCapacity()));
+        return plugin(pluginName, PluginExecutionOptions.defaults(config));
     }
 
     /** 创建使用指定执行配置的插件注册作用域。 */
@@ -116,7 +116,7 @@ public final class QQBot implements AutoCloseable {
         String name = requireHandlerName(pluginName);
         Objects.requireNonNull(options, "options");
         PluginRuntime runtime = pluginRuntimes.compute(name, (ignored, existing) -> {
-            if (existing == null) {
+            if (existing == null || existing.isClosed()) {
                 return new PluginRuntime(this, name, options);
             }
             if (!existing.options().equals(options)) {
@@ -129,195 +129,117 @@ public final class QQBot implements AutoCloseable {
     }
 
     /** 注册未命名的同步原始事件监听器。 */
-    public QQBot onEvent(Consumer<QQEvent> listener) {
+    public QQBot onEvent(EventHandler<QQEvent> listener) {
         return onEventNamed(autoName(listener), listener);
     }
 
     /** 注册指定名称的同步原始事件监听器。 */
-    public QQBot onEventNamed(String handlerName, Consumer<QQEvent> listener) {
-        eventListeners.add(syncHandler(handlerName, listener));
+    public QQBot onEventNamed(String handlerName, EventHandler<QQEvent> listener) {
+        eventListeners.add(handler(defaultRuntime, handlerName, "event", listener));
         logger.debug("PLUGIN", "registered event handler=" + handlerName);
         return this;
     }
 
-    /** 注册指定名称的异步原始事件监听器，返回的 Stage 完成后记录处理完成。 */
-    public QQBot onEventAsync(String handlerName,
-                              Function<QQEvent, ? extends CompletionStage<?>> listener) {
-        eventListeners.add(asyncHandler(handlerName, listener));
-        logger.debug("PLUGIN", "registered async event handler=" + handlerName);
-        return this;
-    }
-
     /** 注册未命名的指定事件类型同步监听器。 */
-    public QQBot onEvent(String type, Consumer<QQEvent> listener) {
+    public QQBot onEvent(String type, EventHandler<QQEvent> listener) {
         return onEvent(type, autoName(listener), listener);
     }
 
     /** 注册指定名称的指定事件类型同步监听器。 */
-    public QQBot onEvent(String type, String handlerName, Consumer<QQEvent> listener) {
+    public QQBot onEvent(String type, String handlerName, EventHandler<QQEvent> listener) {
         requireEventType(type);
         typedListeners.computeIfAbsent(type, ignored -> new CopyOnWriteArrayList<>())
-                .add(syncHandler(handlerName, listener));
+                .add(handler(defaultRuntime, handlerName, "typed-event", listener));
         logger.debug("PLUGIN", "registered typed-event handler=" + handlerName + " type=" + type);
         return this;
     }
 
-    /** 注册指定名称的指定事件类型异步监听器。 */
-    public QQBot onEventAsync(String type, String handlerName,
-                              Function<QQEvent, ? extends CompletionStage<?>> listener) {
-        requireEventType(type);
-        typedListeners.computeIfAbsent(type, ignored -> new CopyOnWriteArrayList<>())
-                .add(asyncHandler(handlerName, listener));
-        logger.debug("PLUGIN", "registered async typed-event handler=" + handlerName + " type=" + type);
-        return this;
-    }
-
     /** 注册未命名的同步标准化消息监听器。 */
-    public QQBot onMessage(Consumer<QQMessageEvent> listener) {
+    public QQBot onMessage(EventHandler<QQMessageEvent> listener) {
         return onMessage(autoName(listener), listener);
     }
 
     /** 注册指定名称的同步标准化消息监听器。 */
-    public QQBot onMessage(String handlerName, Consumer<QQMessageEvent> listener) {
-        messageListeners.add(syncHandler(handlerName, listener));
+    public QQBot onMessage(String handlerName, EventHandler<QQMessageEvent> listener) {
+        messageListeners.add(handler(defaultRuntime, handlerName, "message", listener));
         logger.debug("PLUGIN", "registered message handler=" + handlerName);
         return this;
     }
 
-    /** 注册指定名称的异步标准化消息监听器。 */
-    public QQBot onMessageAsync(String handlerName,
-                                Function<QQMessageEvent, ? extends CompletionStage<?>> listener) {
-        messageListeners.add(asyncHandler(handlerName, listener));
-        logger.debug("PLUGIN", "registered async message handler=" + handlerName);
-        return this;
-    }
-
     /** 注册未命名的同步互动监听器。 */
-    public QQBot onInteraction(Consumer<QQInteractionEvent> listener) {
+    public QQBot onInteraction(EventHandler<QQInteractionEvent> listener) {
         return onInteraction(autoName(listener), listener);
     }
 
     /** 注册指定名称的同步互动监听器。 */
-    public QQBot onInteraction(String handlerName, Consumer<QQInteractionEvent> listener) {
-        interactionListeners.add(syncHandler(handlerName, listener));
+    public QQBot onInteraction(String handlerName, EventHandler<QQInteractionEvent> listener) {
+        interactionListeners.add(handler(defaultRuntime, handlerName, "interaction", listener));
         logger.debug("PLUGIN", "registered interaction handler=" + handlerName);
         return this;
     }
 
-    /** 注册指定名称的异步互动监听器。 */
-    public QQBot onInteractionAsync(String handlerName,
-                                    Function<QQInteractionEvent, ? extends CompletionStage<?>> listener) {
-        interactionListeners.add(asyncHandler(handlerName, listener));
-        logger.debug("PLUGIN", "registered async interaction handler=" + handlerName);
-        return this;
-    }
-
     /** 注册未命名的同步关系事件监听器。 */
-    public QQBot onRelationship(Consumer<QQRelationshipEvent> listener) {
+    public QQBot onRelationship(EventHandler<QQRelationshipEvent> listener) {
         return onRelationship(autoName(listener), listener);
     }
 
     /** 注册指定名称的同步关系事件监听器。 */
-    public QQBot onRelationship(String handlerName, Consumer<QQRelationshipEvent> listener) {
-        relationshipListeners.add(syncHandler(handlerName, listener));
+    public QQBot onRelationship(String handlerName, EventHandler<QQRelationshipEvent> listener) {
+        relationshipListeners.add(handler(defaultRuntime, handlerName, "relationship", listener));
         logger.debug("PLUGIN", "registered relationship handler=" + handlerName);
         return this;
     }
 
-    /** 注册指定名称的异步关系事件监听器。 */
-    public QQBot onRelationshipAsync(String handlerName,
-                                     Function<QQRelationshipEvent, ? extends CompletionStage<?>> listener) {
-        relationshipListeners.add(asyncHandler(handlerName, listener));
-        logger.debug("PLUGIN", "registered async relationship handler=" + handlerName);
-        return this;
-    }
-
     /** 注册未命名的同步消息状态监听器。 */
-    public QQBot onMessageStatus(Consumer<QQMessageStatusEvent> listener) {
+    public QQBot onMessageStatus(EventHandler<QQMessageStatusEvent> listener) {
         return onMessageStatus(autoName(listener), listener);
     }
 
     /** 注册指定名称的同步消息状态监听器。 */
-    public QQBot onMessageStatus(String handlerName, Consumer<QQMessageStatusEvent> listener) {
-        messageStatusListeners.add(syncHandler(handlerName, listener));
+    public QQBot onMessageStatus(String handlerName, EventHandler<QQMessageStatusEvent> listener) {
+        messageStatusListeners.add(handler(defaultRuntime, handlerName, "message-status", listener));
         logger.debug("PLUGIN", "registered message-status handler=" + handlerName);
         return this;
     }
 
-    /** 注册指定名称的异步消息状态监听器。 */
-    public QQBot onMessageStatusAsync(String handlerName,
-                                      Function<QQMessageStatusEvent, ? extends CompletionStage<?>> listener) {
-        messageStatusListeners.add(asyncHandler(handlerName, listener));
-        logger.debug("PLUGIN", "registered async message-status handler=" + handlerName);
-        return this;
-    }
-
     /** 注册未命名的同步资源监听器。 */
-    public QQBot onResource(Consumer<QQResourceEvent> listener) {
+    public QQBot onResource(EventHandler<QQResourceEvent> listener) {
         return onResource(autoName(listener), listener);
     }
 
     /** 注册指定名称的同步资源监听器。 */
-    public QQBot onResource(String handlerName, Consumer<QQResourceEvent> listener) {
-        resourceListeners.add(syncHandler(handlerName, listener));
+    public QQBot onResource(String handlerName, EventHandler<QQResourceEvent> listener) {
+        resourceListeners.add(handler(defaultRuntime, handlerName, "resource", listener));
         logger.debug("PLUGIN", "registered resource handler=" + handlerName);
         return this;
     }
 
-    /** 注册指定名称的异步资源监听器。 */
-    public QQBot onResourceAsync(String handlerName,
-                                 Function<QQResourceEvent, ? extends CompletionStage<?>> listener) {
-        resourceListeners.add(asyncHandler(handlerName, listener));
-        logger.debug("PLUGIN", "registered async resource handler=" + handlerName);
-        return this;
-    }
-
     private QQBot onCommand(String handlerName, String command, int priority,
-                            boolean continuePropagation, Consumer<QQCommandEvent> listener) {
+                            boolean continuePropagation, EventHandler<QQCommandEvent> listener) {
         commandListeners.add(new CommandHandler(requireHandlerName(handlerName), normalizeCommand(command),
-                priority, continuePropagation, syncAction(listener)));
+                priority, continuePropagation, defaultRuntime, listener));
         logger.debug("PLUGIN", "registered command handler=" + handlerName + " command=" + command
                 + " priority=" + priority + " continue=" + continuePropagation);
         return this;
     }
 
-    private QQBot onCommandAsync(String handlerName, String command, int priority,
-                                 boolean continuePropagation,
-                                 Function<QQCommandEvent, ? extends CompletionStage<?>> listener) {
-        commandListeners.add(new CommandHandler(requireHandlerName(handlerName), normalizeCommand(command),
-                priority, continuePropagation, asyncAction(listener)));
-        logger.debug("PLUGIN", "registered async command handler=" + handlerName + " command=" + command
-                + " priority=" + priority + " continue=" + continuePropagation);
-        return this;
-    }
 
     /** 注册未命名的错误监听器。 */
-    public QQBot onError(Consumer<Throwable> listener) {
+    public QQBot onError(EventHandler<Throwable> listener) {
         return onError(autoName(listener), listener);
     }
 
     /** 注册指定名称的错误监听器。 */
-    public QQBot onError(String handlerName, Consumer<Throwable> listener) {
+    public QQBot onError(String handlerName, EventHandler<Throwable> listener) {
         Objects.requireNonNull(listener, "listener");
-        errorListeners.add(new NamedErrorHandler(requireHandlerName(handlerName),
-                error -> {
-                    listener.accept(error);
-                    return CompletableFuture.completedFuture(null);
-                }));
+        errorListeners.add(new NamedErrorHandler(requireHandlerName(handlerName), defaultRuntime, listener));
         logger.debug("PLUGIN", "registered error handler=" + handlerName);
         return this;
     }
 
-    private QQBot onErrorAsync(String handlerName,
-                               Function<Throwable, ? extends CompletionStage<?>> listener) {
-        errorListeners.add(new NamedErrorHandler(requireHandlerName(handlerName),
-                Objects.requireNonNull(listener, "listener")));
-        logger.debug("PLUGIN", "registered async error handler=" + handlerName);
-        return this;
-    }
 
     /** Listener registration scope for one plugin. */
-    public static final class Plugin {
+    public static final class Plugin implements AutoCloseable {
         private final QQBot bot;
         private final PluginRuntime runtime;
 
@@ -337,44 +259,25 @@ public final class QQBot implements AutoCloseable {
         }
 
         /** 注册在当前插件执行器中运行的原始事件监听器。 */
-        public Plugin onEvent(Consumer<QQEvent> listener) {
+        public Plugin onEvent(EventHandler<QQEvent> listener) {
             String name = handler("event");
-            bot.onEventAsync(name, runtime.sync(name, "event", listener));
-            return this;
-        }
-
-        /** 注册在当前插件执行器中启动并跟踪 Stage 的原始事件监听器。 */
-        public Plugin onEventAsync(Function<QQEvent, ? extends CompletionStage<?>> listener) {
-            String name = handler("event");
-            bot.onEventAsync(name, runtime.async(name, "event", listener));
+            bot.eventListeners.add(QQBot.handler(runtime, name, "event", listener));
             return this;
         }
 
         /** 注册在当前插件执行器中运行的指定类型事件监听器。 */
-        public Plugin onEvent(String type, Consumer<QQEvent> listener) {
+        public Plugin onEvent(String type, EventHandler<QQEvent> listener) {
             String name = handler("event." + type);
-            bot.onEventAsync(type, name, runtime.sync(name, "typed-event", listener));
-            return this;
-        }
-
-        /** 注册在当前插件执行器中启动并跟踪 Stage 的指定类型事件监听器。 */
-        public Plugin onEventAsync(String type, Function<QQEvent, ? extends CompletionStage<?>> listener) {
-            String name = handler("event." + type);
-            bot.onEventAsync(type, name, runtime.async(name, "typed-event", listener));
+            requireEventType(type);
+            bot.typedListeners.computeIfAbsent(type, ignored -> new CopyOnWriteArrayList<>())
+                    .add(QQBot.handler(runtime, name, "typed-event", listener));
             return this;
         }
 
         /** 注册在当前插件执行器中运行的消息监听器。 */
-        public Plugin onMessage(Consumer<QQMessageEvent> listener) {
+        public Plugin onMessage(EventHandler<QQMessageEvent> listener) {
             String name = handler("message");
-            bot.onMessageAsync(name, runtime.sync(name, "message", listener));
-            return this;
-        }
-
-        /** 注册在当前插件执行器中启动并跟踪 Stage 的消息监听器。 */
-        public Plugin onMessageAsync(Function<QQMessageEvent, ? extends CompletionStage<?>> listener) {
-            String name = handler("message");
-            bot.onMessageAsync(name, runtime.async(name, "message", listener));
+            bot.messageListeners.add(QQBot.handler(runtime, name, "message", listener));
             return this;
         }
 
@@ -388,92 +291,52 @@ public final class QQBot implements AutoCloseable {
          * @return 当前插件作用域
          */
         public Plugin onCommand(String command, int priority, boolean continuePropagation,
-                                Consumer<QQCommandEvent> listener) {
+                                EventHandler<QQCommandEvent> listener) {
             String name = handler("command." + command);
-            bot.onCommandAsync(name, command, priority, continuePropagation,
-                    runtime.sync(name, "command", listener));
-            return this;
-        }
-
-        /**
-         * 注册在当前插件执行器中启动并跟踪 Stage 的带优先级命令监听器。
-         *
-         * @param command 要匹配的命令名，不包含前缀
-         * @param priority 优先级，数值越大越先执行
-         * @param continuePropagation 是否允许继续执行下一个匹配监听器
-         * @param listener 命令处理函数，返回的 Stage 完成后才继续传播
-         * @return 当前插件作用域
-         */
-        public Plugin onCommandAsync(String command, int priority, boolean continuePropagation,
-                                     Function<QQCommandEvent, ? extends CompletionStage<?>> listener) {
-            String name = handler("command." + command);
-            bot.onCommandAsync(name, command, priority, continuePropagation,
-                    runtime.async(name, "command", listener));
+            bot.commandListeners.add(new CommandHandler(name, normalizeCommand(command), priority,
+                    continuePropagation, runtime, Objects.requireNonNull(listener, "listener")));
             return this;
         }
 
         /** 注册在当前插件执行器中运行的互动监听器。 */
-        public Plugin onInteraction(Consumer<QQInteractionEvent> listener) {
+        public Plugin onInteraction(EventHandler<QQInteractionEvent> listener) {
             String name = handler("interaction");
-            bot.onInteractionAsync(name, runtime.sync(name, "interaction", listener));
-            return this;
-        }
-
-        /** 注册在当前插件执行器中启动并跟踪 Stage 的互动监听器。 */
-        public Plugin onInteractionAsync(Function<QQInteractionEvent, ? extends CompletionStage<?>> listener) {
-            String name = handler("interaction");
-            bot.onInteractionAsync(name, runtime.async(name, "interaction", listener));
+            bot.interactionListeners.add(QQBot.handler(runtime, name, "interaction", listener));
             return this;
         }
 
         /** 注册在当前插件执行器中运行的关系事件监听器。 */
-        public Plugin onRelationship(Consumer<QQRelationshipEvent> listener) {
+        public Plugin onRelationship(EventHandler<QQRelationshipEvent> listener) {
             String name = handler("relationship");
-            bot.onRelationshipAsync(name, runtime.sync(name, "relationship", listener));
-            return this;
-        }
-
-        /** 注册在当前插件执行器中启动并跟踪 Stage 的关系事件监听器。 */
-        public Plugin onRelationshipAsync(Function<QQRelationshipEvent, ? extends CompletionStage<?>> listener) {
-            String name = handler("relationship");
-            bot.onRelationshipAsync(name, runtime.async(name, "relationship", listener));
+            bot.relationshipListeners.add(QQBot.handler(runtime, name, "relationship", listener));
             return this;
         }
 
         /** 注册在当前插件执行器中运行的消息状态监听器。 */
-        public Plugin onMessageStatus(Consumer<QQMessageStatusEvent> listener) {
+        public Plugin onMessageStatus(EventHandler<QQMessageStatusEvent> listener) {
             String name = handler("message-status");
-            bot.onMessageStatusAsync(name, runtime.sync(name, "message-status", listener));
-            return this;
-        }
-
-        /** 注册在当前插件执行器中启动并跟踪 Stage 的消息状态监听器。 */
-        public Plugin onMessageStatusAsync(Function<QQMessageStatusEvent, ? extends CompletionStage<?>> listener) {
-            String name = handler("message-status");
-            bot.onMessageStatusAsync(name, runtime.async(name, "message-status", listener));
+            bot.messageStatusListeners.add(QQBot.handler(runtime, name, "message-status", listener));
             return this;
         }
 
         /** 注册在当前插件执行器中运行的资源监听器。 */
-        public Plugin onResource(Consumer<QQResourceEvent> listener) {
+        public Plugin onResource(EventHandler<QQResourceEvent> listener) {
             String name = handler("resource");
-            bot.onResourceAsync(name, runtime.sync(name, "resource", listener));
-            return this;
-        }
-
-        /** 注册在当前插件执行器中启动并跟踪 Stage 的资源监听器。 */
-        public Plugin onResourceAsync(Function<QQResourceEvent, ? extends CompletionStage<?>> listener) {
-            String name = handler("resource");
-            bot.onResourceAsync(name, runtime.async(name, "resource", listener));
+            bot.resourceListeners.add(QQBot.handler(runtime, name, "resource", listener));
             return this;
         }
 
         /** 在当前插件作用域注册错误监听器。 */
-        public Plugin onError(Consumer<Throwable> listener) {
+        public Plugin onError(EventHandler<Throwable> listener) {
             String name = handler("error");
-            bot.onErrorAsync(name, runtime.sync(name, "error", listener));
+            bot.errorListeners.add(new NamedErrorHandler(name, runtime, listener));
             return this;
         }
+
+        public boolean isClosing() { return runtime.isClosing(); }
+        public boolean isClosed() { return runtime.isClosed(); }
+
+        @Override public void close() { bot.closePlugin(runtime); }
 
         private String handler(String kind) {
             return runtime.nextHandler(kind);
@@ -494,40 +357,57 @@ public final class QQBot implements AutoCloseable {
     }
 
     /** 发送私聊文本消息。 */
-    public CompletableFuture<MessageResponse> sendPrivateMessage(String userOpenId, String content) {
+    public MessageResponse sendPrivateMessage(String userOpenId, String content) {
         return sendPrivateMessage(userOpenId, MessagePayload.text(content));
     }
 
     /** 发送已构造的私聊消息载荷。 */
-    public CompletableFuture<MessageResponse> sendPrivateMessage(String userOpenId, MessagePayload payload) {
+    public MessageResponse sendPrivateMessage(String userOpenId, MessagePayload payload) {
         requireId(userOpenId, "userOpenId");
         return sendMessage("/v2/users/" + encodePathSegment(userOpenId) + "/messages", payload);
     }
 
     /** 发送群聊文本消息。 */
-    public CompletableFuture<MessageResponse> sendGroupMessage(String groupOpenId, String content) {
+    public MessageResponse sendGroupMessage(String groupOpenId, String content) {
         return sendGroupMessage(groupOpenId, MessagePayload.text(content));
     }
 
     /** 发送已构造的群聊消息载荷。 */
-    public CompletableFuture<MessageResponse> sendGroupMessage(String groupOpenId, MessagePayload payload) {
+    public MessageResponse sendGroupMessage(String groupOpenId, MessagePayload payload) {
         requireId(groupOpenId, "groupOpenId");
         return sendMessage("/v2/groups/" + encodePathSegment(groupOpenId) + "/messages", payload);
     }
 
+    private void closePlugin(PluginRuntime runtime) {
+        if (runtime == defaultRuntime) throw new IllegalStateException("default plugin runtime is owned by QQBot");
+        eventListeners.removeIf(handler -> handler.runtime() == runtime);
+        typedListeners.values().forEach(list -> list.removeIf(handler -> handler.runtime() == runtime));
+        messageListeners.removeIf(handler -> handler.runtime() == runtime);
+        interactionListeners.removeIf(handler -> handler.runtime() == runtime);
+        relationshipListeners.removeIf(handler -> handler.runtime() == runtime);
+        messageStatusListeners.removeIf(handler -> handler.runtime() == runtime);
+        resourceListeners.removeIf(handler -> handler.runtime() == runtime);
+        commandListeners.removeIf(handler -> handler.runtime() == runtime);
+        errorListeners.removeIf(handler -> handler.runtime() == runtime);
+        runtime.beginShutdown();
+        runtime.awaitShutdown(System.nanoTime() + config.pluginShutdownTimeout().toNanos(),
+                config.pluginShutdownTimeout());
+        pluginRuntimes.remove(runtime.name(), runtime);
+    }
+
     /** 发送文字子频道文本消息。 */
-    public CompletableFuture<MessageResponse> sendChannelMessage(String channelId, String content) {
+    public MessageResponse sendChannelMessage(String channelId, String content) {
         return sendChannelMessage(channelId, MessagePayload.text(content));
     }
 
     /** 发送已构造的文字子频道消息载荷。 */
-    public CompletableFuture<MessageResponse> sendChannelMessage(String channelId, MessagePayload payload) {
+    public MessageResponse sendChannelMessage(String channelId, MessagePayload payload) {
         requireId(channelId, "channelId");
         return sendChannelStyleMessage("/channels/" + encodePathSegment(channelId) + "/messages", payload);
     }
 
     /** 使用 multipart/form-data 向文字子频道直接上传并发送图片。 */
-    public CompletableFuture<MessageResponse> sendChannelImage(String channelId, MessagePayload payload,
+    public MessageResponse sendChannelImage(String channelId, MessagePayload payload,
                                                                 String fileName, String contentType, byte[] image) {
         requireId(channelId, "channelId");
         return sendChannelStyleImage("/channels/" + encodePathSegment(channelId) + "/messages",
@@ -535,18 +415,18 @@ public final class QQBot implements AutoCloseable {
     }
 
     /** 发送频道私信文本消息，其中 {@code guildId} 是创建会话或私信事件返回的私信 Guild ID。 */
-    public CompletableFuture<MessageResponse> sendDirectMessage(String guildId, String content) {
+    public MessageResponse sendDirectMessage(String guildId, String content) {
         return sendDirectMessage(guildId, MessagePayload.text(content));
     }
 
     /** 发送已构造的频道私信消息载荷。 */
-    public CompletableFuture<MessageResponse> sendDirectMessage(String guildId, MessagePayload payload) {
+    public MessageResponse sendDirectMessage(String guildId, MessagePayload payload) {
         requireId(guildId, "guildId");
         return sendChannelStyleMessage("/dms/" + encodePathSegment(guildId) + "/messages", payload);
     }
 
     /** 使用 multipart/form-data 向频道私信会话直接上传并发送图片。 */
-    public CompletableFuture<MessageResponse> sendDirectImage(String guildId, MessagePayload payload,
+    public MessageResponse sendDirectImage(String guildId, MessagePayload payload,
                                                                String fileName, String contentType, byte[] image) {
         requireId(guildId, "guildId");
         return sendChannelStyleImage("/dms/" + encodePathSegment(guildId) + "/messages",
@@ -554,7 +434,7 @@ public final class QQBot implements AutoCloseable {
     }
 
     /** 回复标准化消息事件，并发送文本内容。 */
-    public CompletableFuture<MessageResponse> replyText(QQMessageEvent event, String content) {
+    public MessageResponse replyText(QQMessageEvent event, String content) {
         Objects.requireNonNull(event, "event");
         MessagePayload payload = MessagePayload.text(content).replyTo(event);
         if (event.isGroupMessage()) {
@@ -660,7 +540,7 @@ public final class QQBot implements AutoCloseable {
                 + " arguments=" + commandEvent.arguments().size() + " listeners=" + matching.size());
 
         AtomicBoolean stopped = new AtomicBoolean();
-        CompletionStage<Void> chain = CompletableFuture.completedFuture(null);
+        CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
         for (CommandHandler listener : matching) {
             chain = chain.thenCompose(ignored -> {
                 if (stopped.get()) {
@@ -678,34 +558,9 @@ public final class QQBot implements AutoCloseable {
         return matching.size();
     }
 
-    private CompletionStage<Void> invokeCommandHandler(QQEvent event, CommandHandler handler,
+    private CompletableFuture<Void> invokeCommandHandler(QQEvent event, CommandHandler handler,
                                                        QQCommandEvent commandEvent) {
-        long started = System.nanoTime();
-        logger.debug("PLUGIN", "dispatching handler=" + handler.name() + " kind=command command="
-                + handler.command() + " eventType=" + event.type() + " eventId=" + event.id()
-                + " priority=" + handler.priority());
-        try {
-            CompletionStage<?> completion = handler.action().apply(commandEvent);
-            if (completion == null) {
-                logHandlerCompleted("command", event, handler.name(), started);
-                return CompletableFuture.completedFuture(null);
-            }
-            return completion.handle((ignored, error) -> {
-                if (error == null) {
-                    logHandlerCompleted("command", event, handler.name(), started);
-                } else {
-                    logger.error("PLUGIN", "failed handler=" + handler.name() + " kind=command"
-                            + " command=" + handler.command() + " eventType=" + event.type()
-                            + " eventId=" + event.id() + " elapsedMs=" + elapsedMillis(started), unwrap(error));
-                }
-                return null;
-            });
-        } catch (Throwable error) {
-            logger.error("PLUGIN", "failed handler=" + handler.name() + " kind=command"
-                    + " command=" + handler.command() + " eventType=" + event.type()
-                    + " eventId=" + event.id() + " elapsedMs=" + elapsedMillis(started), error);
-            return CompletableFuture.completedFuture(null);
-        }
+        return handler.runtime().submit(handler.name(), "command", commandEvent, handler.action());
     }
 
     private ParsedCommand parseCommand(String content) {
@@ -738,38 +593,35 @@ public final class QQBot implements AutoCloseable {
                 + " message=" + actual.getMessage(), actual);
         for (NamedErrorHandler listener : errorListeners) {
             try {
-                CompletionStage<?> completion = listener.action().apply(actual);
-                if (completion != null) {
-                    completion.whenComplete((ignored, listenerError) -> {
-                        if (listenerError != null) {
+                listener.runtime().submit(listener.name(), "error", actual, listener.action())
+                        .exceptionally(listenerError -> {
                             logger.error("PLUGIN", "error handler failed name=" + listener.name(),
                                     unwrap(listenerError));
-                        }
-                    });
-                }
+                            return null;
+                        });
             } catch (Throwable listenerError) {
                 logger.error("PLUGIN", "error handler failed name=" + listener.name(), listenerError);
             }
         }
     }
 
-    private CompletableFuture<MessageResponse> sendMessage(String path, MessagePayload payload) {
+    private MessageResponse sendMessage(String path, MessagePayload payload) {
         Objects.requireNonNull(payload, "payload");
         ObjectNode body = payload.copyNode();
-        return api.postAsync(path, body).thenApply(QQBot::messageResponse);
+        return messageResponse(await(api.postAsync(path, body)));
     }
 
-    private CompletableFuture<MessageResponse> sendChannelStyleMessage(String path, MessagePayload payload) {
+    private MessageResponse sendChannelStyleMessage(String path, MessagePayload payload) {
         Objects.requireNonNull(payload, "payload");
-        return api.postAsync(path, payload.copyChannelNode()).thenApply(QQBot::messageResponse);
+        return messageResponse(await(api.postAsync(path, payload.copyChannelNode())));
     }
 
-    private CompletableFuture<MessageResponse> sendChannelStyleImage(String path, MessagePayload payload,
+    private MessageResponse sendChannelStyleImage(String path, MessagePayload payload,
                                                                       String fileName, String contentType,
                                                                       byte[] image) {
         Objects.requireNonNull(payload, "payload");
-        return api.postMultipartAsync(path, payload.copyChannelNode(), fileName, contentType, image)
-                .thenApply(QQBot::messageResponse);
+        return messageResponse(await(api.postMultipartAsync(path, payload.copyChannelNode(),
+                fileName, contentType, image)));
     }
 
     private static MessageResponse messageResponse(JsonNode body) {
@@ -801,28 +653,7 @@ public final class QQBot implements AutoCloseable {
     }
 
     private <T> void invokeHandler(String kind, QQEvent event, NamedHandler<T> handler, T value) {
-        long started = System.nanoTime();
-        try {
-            CompletionStage<?> completion = handler.action().apply(value);
-            if (completion == null) {
-                logHandlerCompleted(kind, event, handler.name(), started);
-                return;
-            }
-            completion.whenComplete((ignored, error) -> {
-                if (error == null) {
-                    logHandlerCompleted(kind, event, handler.name(), started);
-                } else {
-                    Throwable actual = unwrap(error);
-                    logger.error("PLUGIN", "failed handler=" + handler.name() + " kind=" + kind
-                            + " eventType=" + event.type() + " eventId=" + event.id()
-                            + " elapsedMs=" + elapsedMillis(started), actual);
-                }
-            });
-        } catch (Throwable error) {
-            logger.error("PLUGIN", "failed handler=" + handler.name() + " kind=" + kind
-                    + " eventType=" + event.type() + " eventId=" + event.id()
-                    + " elapsedMs=" + elapsedMillis(started), error);
-        }
+        handler.runtime().submit(handler.name(), kind, value, handler.action());
     }
 
     private void invokeHandler(String kind, QQEvent event, NamedHandler<QQEvent> handler) {
@@ -868,202 +699,210 @@ public final class QQBot implements AutoCloseable {
         return value;
     }
 
-    private static Function<QQCommandEvent, ? extends CompletionStage<?>> syncAction(
-            Consumer<QQCommandEvent> listener) {
-        Objects.requireNonNull(listener, "listener");
-        return value -> {
-            listener.accept(value);
-            return CompletableFuture.completedFuture(null);
-        };
+    private static <T> NamedHandler<T> handler(PluginRuntime runtime, String name, String kind,
+                                                EventHandler<T> listener) {
+        return new NamedHandler<>(requireHandlerName(name), kind, runtime,
+                Objects.requireNonNull(listener, "listener"));
     }
 
-    private static Function<QQCommandEvent, ? extends CompletionStage<?>> asyncAction(
-            Function<QQCommandEvent, ? extends CompletionStage<?>> listener) {
-        return Objects.requireNonNull(listener, "listener");
-    }
-
-    private static <T> NamedHandler<T> syncHandler(String name, Consumer<T> listener) {
-        Objects.requireNonNull(listener, "listener");
-        return new NamedHandler<>(requireHandlerName(name), value -> {
-            listener.accept(value);
-            return CompletableFuture.completedFuture(null);
-        });
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> NamedHandler<T> asyncHandler(String name,
-                                                     Function<T, ? extends CompletionStage<?>> listener) {
-        Objects.requireNonNull(listener, "listener");
-        return new NamedHandler<>(requireHandlerName(name), value -> listener.apply(value));
+    private static <T> T await(CompletableFuture<T> future) {
+        try {
+            return future.get();
+        } catch (InterruptedException error) {
+            future.cancel(true);
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting for QQ OpenAPI", error);
+        } catch (java.util.concurrent.ExecutionException error) {
+            Throwable cause = error.getCause();
+            if (cause instanceof RuntimeException runtime) throw runtime;
+            if (cause instanceof Error fatal) throw fatal;
+            throw new RuntimeException(cause);
+        }
     }
 
     private static final class PluginRuntime {
         private final QQBot bot;
         private final String name;
         private final PluginExecutionOptions options;
+        private final Duration taskTimeout;
         private final Map<String, AtomicInteger> handlerCounts = new ConcurrentHashMap<>();
-        private final java.util.Set<CompletableFuture<?>> inFlight = ConcurrentHashMap.newKeySet();
-        private final Object completionMonitor = new Object();
-        private final AtomicBoolean closing = new AtomicBoolean();
-        private final ThreadPoolExecutor executor;
+        private final Object lock = new Object();
+        private final java.util.ArrayDeque<ManagedPluginTask<?>> pending = new java.util.ArrayDeque<>();
+        private final java.util.Set<ManagedPluginTask<?>> tasks = ConcurrentHashMap.newKeySet();
+        private final ExecutorService executor;
+        private final ScheduledExecutorService scheduler;
+        private boolean closing;
+        private boolean closed;
+        private int active;
 
         private PluginRuntime(QQBot bot, String name, PluginExecutionOptions options) {
             this.bot = bot;
             this.name = name;
             this.options = options;
-            AtomicInteger workerId = new AtomicInteger();
-            String threadName = sanitizeThreadName(name);
-            this.executor = new ThreadPoolExecutor(
-                    options.threads(),
-                    options.threads(),
-                    0L,
-                    TimeUnit.MILLISECONDS,
-                    new ArrayBlockingQueue<>(options.queueCapacity()),
-                    task -> {
-                        Thread thread = new Thread(task, "astraqqbot-plugin-" + bot.config.shardId()
-                                + "-" + threadName + "-" + workerId.incrementAndGet());
-                        thread.setDaemon(true);
-                        return thread;
-                    },
-                    new ThreadPoolExecutor.AbortPolicy());
+            this.taskTimeout = options.effectiveTaskTimeout(bot.config.pluginTaskTimeout());
+            String prefix = "astraqqbot-plugin-" + bot.config.shardId() + "-" + sanitizeThreadName(name) + "-";
+            this.executor = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name(prefix, 0).factory());
+            this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+                Thread thread = new Thread(runnable, prefix + "timeout");
+                thread.setDaemon(true);
+                return thread;
+            });
         }
 
-        private String name() {
-            return name;
-        }
-
-        private PluginExecutionOptions options() {
-            return options;
-        }
-
+        private String name() { return name; }
+        private PluginExecutionOptions options() { return options; }
+        private boolean isClosing() { synchronized (lock) { return closing; } }
+        private boolean isClosed() { synchronized (lock) { return closed; } }
         private String nextHandler(String kind) {
-            int occurrence = handlerCounts
-                    .computeIfAbsent(kind, ignored -> new AtomicInteger())
-                    .incrementAndGet();
+            synchronized (lock) {
+                if (closing) throw new IllegalStateException("Plugin '" + name + "' is closed");
+            }
+            int occurrence = handlerCounts.computeIfAbsent(kind, ignored -> new AtomicInteger()).incrementAndGet();
             return name + "." + kind + (occurrence == 1 ? "" : "#" + occurrence);
         }
 
-        private <T> Function<T, ? extends CompletionStage<?>> sync(
-                String handlerName, String kind, Consumer<T> listener) {
-            Objects.requireNonNull(listener, "listener");
-            return value -> submit(handlerName, kind, value, current -> {
-                listener.accept(current);
-                return CompletableFuture.completedFuture(null);
-            });
-        }
-
-        private <T> Function<T, ? extends CompletionStage<?>> async(
-                String handlerName, String kind,
-                Function<T, ? extends CompletionStage<?>> listener) {
-            Objects.requireNonNull(listener, "listener");
-            return value -> submit(handlerName, kind, value, listener);
-        }
-
-        private <T> CompletionStage<?> submit(String handlerName, String kind, T value,
-                                               Function<T, ? extends CompletionStage<?>> action) {
-            CompletableFuture<Object> result = new CompletableFuture<>();
-            inFlight.add(result);
-            result.whenComplete((ignored, error) -> {
-                inFlight.remove(result);
-                synchronized (completionMonitor) {
-                    completionMonitor.notifyAll();
-                }
-            });
-            PluginTask task = new PluginTask(result, () -> {
-                try {
-                    CompletionStage<?> completion = action.apply(value);
-                    if (completion == null) {
-                        result.complete(null);
-                    } else {
-                        completion.whenComplete((ignored, error) -> {
-                            if (error == null) {
-                                result.complete(null);
-                            } else {
-                                result.completeExceptionally(unwrap(error));
-                            }
-                        });
-                    }
-                } catch (Throwable error) {
-                    result.completeExceptionally(error);
-                }
-            });
-            try {
-                if (closing.get()) {
-                    throw new RejectedExecutionException("plugin executor is closing");
-                }
-                executor.execute(task);
-                try {
-                    bot.logger.debug("PLUGIN", "captured handler=" + handlerName + " kind=" + kind
-                            + " plugin=" + name + " eventType=" + eventType(value)
-                            + " eventId=" + eventId(value) + " queueSize=" + executor.getQueue().size());
-                } finally {
-                    task.accepted();
-                }
-            } catch (RejectedExecutionException rejected) {
-                RejectedExecutionException detailed = new RejectedExecutionException(
-                        "Plugin '" + name + "' rejected handler '" + handlerName + "'"
-                                + " eventType=" + eventType(value) + " eventId=" + eventId(value)
-                                + " threads=" + options.threads()
-                                + " queue=" + executor.getQueue().size() + "/" + options.queueCapacity(),
-                        rejected);
-                result.completeExceptionally(detailed);
-                if (!"error".equals(kind)) {
-                    bot.reportError("PLUGIN", detailed);
+        private <T> CompletableFuture<Void> submit(String handlerName, String kind, T value,
+                                                   EventHandler<T> action) {
+            ManagedPluginTask<T> task = new ManagedPluginTask<>(this, handlerName, kind, value, action);
+            boolean start = false;
+            RejectedExecutionException rejection = null;
+            synchronized (lock) {
+                if (closing) {
+                    rejection = reject(task, "plugin is closing");
+                } else if (active < options.maxConcurrentTasks()) {
+                    active++;
+                    task.activeSlot = true;
+                    tasks.add(task);
+                    start = true;
+                } else if (pending.size() < options.maxPendingTasks()) {
+                    pending.addLast(task);
+                    tasks.add(task);
+                } else {
+                    rejection = reject(task, "pending queue is full");
                 }
             }
-            return result;
+            if (rejection != null) {
+                if (!"error".equals(kind)) bot.reportError("PLUGIN", rejection);
+                return task.result;
+            }
+            if (start) start(task);
+            bot.logger.debug("PLUGIN", "queued plugin=" + name + " handler=" + handlerName
+                    + " kind=" + kind + " eventType=" + eventType(value) + " eventId=" + eventId(value));
+            return task.result;
+        }
+
+        private RejectedExecutionException reject(ManagedPluginTask<?> task, String reason) {
+            RejectedExecutionException error = new RejectedExecutionException("Plugin '" + name
+                    + "' rejected handler '" + task.handlerName + "': " + reason
+                    + ", eventType=" + eventType(task.value) + ", eventId=" + eventId(task.value)
+                    + ", active=" + active + "/" + options.maxConcurrentTasks()
+                    + ", pending=" + pending.size() + "/" + options.maxPendingTasks());
+            task.state.set(PluginTaskState.CANCELLED);
+            task.endedAtMillis = System.currentTimeMillis();
+            task.result.completeExceptionally(error);
+            return error;
+        }
+
+        private void start(ManagedPluginTask<?> task) {
+            try {
+                executor.execute(task);
+            } catch (RejectedExecutionException error) {
+                finish(task, PluginTaskState.CANCELLED, error);
+            }
+        }
+
+        private void started(ManagedPluginTask<?> task) {
+            if (taskTimeout != null) {
+                task.timeoutFuture = scheduler.schedule(() -> {
+                    TimeoutException error = new TimeoutException("Plugin '" + name + "' handler '"
+                            + task.handlerName + "' timed out after " + taskTimeout
+                            + ", eventType=" + eventType(task.value) + ", eventId=" + eventId(task.value));
+                    if (finish(task, PluginTaskState.TIMED_OUT, error)) {
+                        Thread thread = task.thread;
+                        if (thread != null) thread.interrupt();
+                    }
+                }, taskTimeout.toNanos(), TimeUnit.NANOSECONDS);
+            }
+        }
+
+        private boolean finish(ManagedPluginTask<?> task, PluginTaskState target, Throwable error) {
+            PluginTaskState expected = target == PluginTaskState.CANCELLED
+                    ? task.state.get() : PluginTaskState.RUNNING;
+            if ((expected != PluginTaskState.QUEUED && expected != PluginTaskState.RUNNING)
+                    || !task.state.compareAndSet(expected, target)) return false;
+            task.endedAtMillis = System.currentTimeMillis();
+            ScheduledFuture<?> timer = task.timeoutFuture;
+            if (timer != null) timer.cancel(false);
+            if (error == null) task.result.complete(null); else task.result.completeExceptionally(error);
+
+            long queueMs = task.startedAtMillis == 0 ? 0 : task.startedAtMillis - task.queuedAtMillis;
+            long elapsedMs = task.startedAtMillis == 0 ? 0 : task.endedAtMillis - task.startedAtMillis;
+            String detail = "plugin=" + name + " handler=" + task.handlerName + " kind=" + task.kind
+                    + " eventType=" + eventType(task.value) + " eventId=" + eventId(task.value)
+                    + " queuedAt=" + task.queuedAtMillis + " startedAt=" + task.startedAtMillis
+                    + " endedAt=" + task.endedAtMillis + " queueMs=" + queueMs + " elapsedMs=" + elapsedMs
+                    + " state=" + target + " thread=" + (task.thread == null ? "none" : task.thread.getName());
+            if (error == null) bot.logger.debug("PLUGIN", "completed " + detail);
+            else bot.logger.error("PLUGIN", "failed " + detail, error);
+
+            ManagedPluginTask<?> next = null;
+            synchronized (lock) {
+                tasks.remove(task);
+                if (task.activeSlot) {
+                    task.activeSlot = false;
+                    active--;
+                }
+                while (!pending.isEmpty() && next == null) {
+                    ManagedPluginTask<?> candidate = pending.removeFirst();
+                    if (candidate.state.get() == PluginTaskState.QUEUED) next = candidate;
+                }
+                if (next != null) {
+                    active++;
+                    next.activeSlot = true;
+                }
+                lock.notifyAll();
+            }
+            if (next != null) start(next);
+            if (error != null && !"error".equals(task.kind)) bot.reportError("PLUGIN", error);
+            return true;
         }
 
         private void beginShutdown() {
-            if (closing.compareAndSet(false, true)) {
-                executor.shutdown();
+            List<ManagedPluginTask<?>> queued;
+            synchronized (lock) {
+                if (closing) return;
+                closing = true;
+                queued = List.copyOf(pending);
+                pending.clear();
             }
+            CancellationException error = new CancellationException("Plugin '" + name + "' is closing");
+            queued.forEach(task -> finish(task, PluginTaskState.CANCELLED, error));
         }
 
         private void awaitShutdown(long deadline, Duration configuredTimeout) {
             boolean interrupted = false;
-            synchronized (completionMonitor) {
-                while (!inFlight.isEmpty()) {
+            synchronized (lock) {
+                while (!tasks.isEmpty()) {
                     long remaining = deadline - System.nanoTime();
-                    if (remaining <= 0) {
-                        break;
-                    }
-                    try {
-                        TimeUnit.NANOSECONDS.timedWait(completionMonitor, remaining);
-                    } catch (InterruptedException error) {
-                        interrupted = true;
-                        break;
-                    }
+                    if (remaining <= 0) break;
+                    try { TimeUnit.NANOSECONDS.timedWait(lock, remaining); }
+                    catch (InterruptedException error) { interrupted = true; break; }
                 }
             }
-            if (inFlight.isEmpty() && !interrupted) {
-                long remaining = deadline - System.nanoTime();
-                if (remaining > 0) {
-                    try {
-                        executor.awaitTermination(remaining, TimeUnit.NANOSECONDS);
-                    } catch (InterruptedException error) {
-                        interrupted = true;
+            if (!tasks.isEmpty()) {
+                CancellationException error = new CancellationException("Plugin '" + name
+                        + "' did not stop within " + configuredTimeout);
+                for (ManagedPluginTask<?> task : List.copyOf(tasks)) {
+                    if (finish(task, PluginTaskState.CANCELLED, error)) {
+                        Thread thread = task.thread;
+                        if (thread != null) thread.interrupt();
                     }
                 }
             }
-            if (!executor.isTerminated() || !inFlight.isEmpty()) {
-                int cancelled = inFlight.size();
-                CancellationException cancellation = new CancellationException(
-                        "Plugin '" + name + "' did not stop within " + configuredTimeout);
-                for (Runnable queued : executor.shutdownNow()) {
-                    if (queued instanceof PluginTask task) {
-                        task.cancel(cancellation);
-                    }
-                }
-                for (CompletableFuture<?> future : List.copyOf(inFlight)) {
-                    future.completeExceptionally(cancellation);
-                }
-                bot.logger.warn("PLUGIN", "shutdown timed out plugin=" + name
-                        + " cancelled=" + cancelled);
-            }
-            if (interrupted) {
-                Thread.currentThread().interrupt();
-            }
+            scheduler.shutdownNow();
+            executor.shutdownNow();
+            synchronized (lock) { closed = true; lock.notifyAll(); }
+            if (interrupted) Thread.currentThread().interrupt();
         }
 
         private static String sanitizeThreadName(String value) {
@@ -1093,51 +932,60 @@ public final class QQBot implements AutoCloseable {
             return null;
         }
 
-        private static final class PluginTask implements Runnable {
-            private final CompletableFuture<?> result;
-            private final Runnable action;
-            private final CountDownLatch accepted = new CountDownLatch(1);
+    }
 
-            private PluginTask(CompletableFuture<?> result, Runnable action) {
-                this.result = result;
-                this.action = action;
-            }
+    private static final class ManagedPluginTask<T> implements Runnable {
+        private final PluginRuntime runtime;
+        private final String handlerName;
+        private final String kind;
+        private final T value;
+        private final EventHandler<T> action;
+        private final AtomicReference<PluginTaskState> state = new AtomicReference<>(PluginTaskState.QUEUED);
+        private final CompletableFuture<Void> result = new CompletableFuture<>();
+        private final long queuedAtMillis = System.currentTimeMillis();
+        private volatile long startedAtMillis;
+        private volatile long endedAtMillis;
+        private volatile Thread thread;
+        private volatile ScheduledFuture<?> timeoutFuture;
+        private volatile boolean activeSlot;
 
-            @Override
-            public void run() {
-                try {
-                    accepted.await();
-                    if (!result.isDone()) {
-                        action.run();
-                    }
-                } catch (InterruptedException error) {
-                    result.completeExceptionally(error);
-                    Thread.currentThread().interrupt();
-                }
-            }
+        private ManagedPluginTask(PluginRuntime runtime, String handlerName, String kind, T value,
+                                  EventHandler<T> action) {
+            this.runtime = runtime;
+            this.handlerName = handlerName;
+            this.kind = kind;
+            this.value = value;
+            this.action = action;
+        }
 
-            private void accepted() {
-                accepted.countDown();
-            }
-
-            private void cancel(Throwable error) {
-                result.completeExceptionally(error);
+        @Override public void run() {
+            if (!state.compareAndSet(PluginTaskState.QUEUED, PluginTaskState.RUNNING)) return;
+            thread = Thread.currentThread();
+            startedAtMillis = System.currentTimeMillis();
+            runtime.started(this);
+            try {
+                action.handle(value);
+                runtime.finish(this, PluginTaskState.SUCCEEDED, null);
+            } catch (Throwable error) {
+                runtime.finish(this, PluginTaskState.FAILED, error);
+                if (error instanceof VirtualMachineError fatal) throw fatal;
+                if (error instanceof ThreadDeath fatal) throw fatal;
+                if (error instanceof LinkageError fatal) throw fatal;
             }
         }
     }
 
-    private record NamedHandler<T>(String name, Function<T, ? extends CompletionStage<?>> action) {
+    private record NamedHandler<T>(String name, String kind, PluginRuntime runtime, EventHandler<T> action) {
     }
 
     private record CommandHandler(String name, String command, int priority, boolean continuePropagation,
-                                  Function<QQCommandEvent, ? extends CompletionStage<?>> action) {
+                                  PluginRuntime runtime, EventHandler<QQCommandEvent> action) {
     }
 
     private record ParsedCommand(String prefix, String command, List<String> tokens) {
     }
 
-    private record NamedErrorHandler(String name,
-                                     Function<Throwable, ? extends CompletionStage<?>> action) {
+    private record NamedErrorHandler(String name, PluginRuntime runtime, EventHandler<Throwable> action) {
     }
 
     /** 关闭 Gateway、Webhook、调度器及其他由 Bot 持有的资源。 */
@@ -1152,7 +1000,8 @@ public final class QQBot implements AutoCloseable {
             webhook.close();
             webhook = null;
         }
-        List<PluginRuntime> runtimes = List.copyOf(pluginRuntimes.values());
+        List<PluginRuntime> runtimes = new java.util.ArrayList<>(pluginRuntimes.values());
+        runtimes.add(defaultRuntime);
         for (PluginRuntime runtime : runtimes) {
             runtime.beginShutdown();
         }
