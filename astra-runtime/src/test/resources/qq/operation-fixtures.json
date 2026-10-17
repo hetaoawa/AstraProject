@@ -1,0 +1,1943 @@
+[
+    {
+        "operation":  "channels_channel_id.delete",
+        "method":  "DELETE",
+        "path":  "/channels/{channel_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/channels_channel_id.delete.html"
+    },
+    {
+        "operation":  "channels_channel_id.get",
+        "method":  "GET",
+        "path":  "/channels/{channel_id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "id":  "123456",
+                         "guild_id":  "123456789012345678",
+                         "name":  "文字交流区",
+                         "type":  0,
+                         "sub_type":  0,
+                         "position":  1,
+                         "parent_id":  "0",
+                         "owner_id":  "123456789012345678",
+                         "private_type":  0,
+                         "speak_permission":  1,
+                         "permissions":  "0"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/channels_channel_id.get.html"
+    },
+    {
+        "operation":  "channels_channel_id.patch",
+        "method":  "PATCH",
+        "path":  "/channels/{channel_id}",
+        "request":  {
+                        "name":  "公告区（已改名）",
+                        "position":  5,
+                        "parent_id":  "0"
+                    },
+        "response":  {
+                         "id":  "123456",
+                         "guild_id":  "123456789012345678",
+                         "name":  "公告区（已改名）",
+                         "type":  0,
+                         "sub_type":  0,
+                         "position":  5,
+                         "parent_id":  "0",
+                         "owner_id":  "123456789012345678",
+                         "private_type":  0,
+                         "speak_permission":  1
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/channels_channel_id.patch.html"
+    },
+    {
+        "operation":  "gateway.get",
+        "method":  "GET",
+        "path":  "/gateway",
+        "request":  {
+
+                    },
+        "response":  {
+                         "url":  "wss://qqbot-api.example.com/websocket"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/gateway.get.html"
+    },
+    {
+        "operation":  "guilds_guild_id_channels.get",
+        "method":  "GET",
+        "path":  "/guilds/{guild_id}/channels",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/guilds_guild_id_channels.get.html"
+    },
+    {
+        "operation":  "guilds_guild_id.get",
+        "method":  "GET",
+        "path":  "/guilds/{guild_id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "id":  "123456789012345678",
+                         "name":  "技术交流频道",
+                         "icon":  "https://thirdqq.qlogo.cn/0",
+                         "owner_id":  "123456789012345678",
+                         "owner":  false,
+                         "member_count":  100,
+                         "max_members":  1000,
+                         "description":  "专注于技术分享与交流的频道",
+                         "joined_at":  "2026-01-01T00:00:00+08:00"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/guilds_guild_id.get.html"
+    },
+    {
+        "operation":  "users_me.get",
+        "method":  "GET",
+        "path":  "/users/@me",
+        "request":  {
+
+                    },
+        "response":  {
+                         "id":  "5777414462219517083",
+                         "username":  "阳光小助手",
+                         "avatar":  "https://thirdqq.qlogo.cn/g?b=oidb\u0026k=AbCdEfGhIjKlMnOpQrStUv\u0026kti=xyzABC\u0026s=0\u0026t=1781676795",
+                         "bot":  true,
+                         "union_openid":  "9F2E872045CCCC5948BEAF5B5FCCDF22",
+                         "union_user_account":  "",
+                         "share_url":  "https://qun.qq.com/qunpro/robot/qunshare?robot_uin=3889007780\u0026robot_appid=102083127\u0026biz_type=0",
+                         "welcome_msg":  "欢迎加入我们的群聊"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/users_me.get.html"
+    },
+    {
+        "operation":  "interactions_interaction_id.put",
+        "method":  "PUT",
+        "path":  "/interactions/{interaction_id}",
+        "request":  {
+                        "code":  0
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/interactions_interaction_id.put.html"
+    },
+    {
+        "operation":  "users_me_guilds.get",
+        "method":  "GET",
+        "path":  "/users/@me/guilds",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/users_me_guilds.get.html"
+    },
+    {
+        "operation":  "v2_generate_url_link.post",
+        "method":  "POST",
+        "path":  "/v2/generate_url_link",
+        "request":  {
+                        "callback_data":  "custom_data_123"
+                    },
+        "response":  {
+                         "data":  {
+                                      "url":  "https://qun.qq.com/qunpro/robot/qunshare?robot_appid=1234567890\u0026robot_uin=12345678\u0026data=xxx"
+                                  }
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_generate_url_link.post.html"
+    },
+    {
+        "operation":  "guilds_guild_id_channels.post",
+        "method":  "POST",
+        "path":  "/guilds/{guild_id}/channels",
+        "request":  {
+                        "name":  "公告区",
+                        "type":  0,
+                        "sub_type":  1,
+                        "position":  3,
+                        "parent_id":  "0",
+                        "private_type":  0,
+                        "speak_permission":  1
+                    },
+        "response":  {
+                         "id":  "123458",
+                         "guild_id":  "123456789012345678",
+                         "name":  "公告区",
+                         "type":  0,
+                         "sub_type":  1,
+                         "position":  3,
+                         "parent_id":  "0",
+                         "owner_id":  "123456789012345678",
+                         "private_type":  0,
+                         "speak_permission":  1
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/guilds_guild_id_channels.post.html"
+    },
+    {
+        "operation":  "v2_groups_group_id_upload_part_finish.post",
+        "method":  "POST",
+        "path":  "/v2/groups/{group_id}/upload_part_finish",
+        "request":  {
+                        "upload_id":  "upload_a1b2c3d4e5f6",
+                        "part_index":  0,
+                        "block_size":  "10485760",
+                        "md5":  "c4d8c5f3a2b1e0f9a8b7c6d5e4f3a2b1"
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_id_upload_part_finish.post.html"
+    },
+    {
+        "operation":  "v2_groups_group_id_upload_prepare.post",
+        "method":  "POST",
+        "path":  "/v2/groups/{group_id}/upload_prepare",
+        "request":  {
+                        "file_type":  2,
+                        "file_size":  "31457280",
+                        "file_name":  "demo.mp4",
+                        "md5":  "d41d8cd98f00b204e9800998ecf8427e",
+                        "sha1":  "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                        "md5_10m":  "c4d8c5f3a2b1e0f9a8b7c6d5e4f3a2b1"
+                    },
+        "response":  {
+                         "upload_id":  "upload_a1b2c3d4e5f6",
+                         "block_size":  "10485760",
+                         "parts":  [
+                                       {
+                                           "index":  0,
+                                           "presigned_url":  "https://cos.example.com/upload?partNumber=1\u0026sign=aaa",
+                                           "block_size":  "10485760"
+                                       },
+                                       {
+                                           "index":  1,
+                                           "presigned_url":  "https://cos.example.com/upload?partNumber=2\u0026sign=bbb",
+                                           "block_size":  "10485760"
+                                       },
+                                       {
+                                           "index":  2,
+                                           "presigned_url":  "https://cos.example.com/upload?partNumber=3\u0026sign=ccc",
+                                           "block_size":  "10485760"
+                                       }
+                                   ],
+                         "upload_config":  {
+                                               "concurrency":  1,
+                                               "retry_timeout":  300,
+                                               "retry_delay":  1
+                                           }
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_id_upload_prepare.post.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_approval_join_request_member_openid.post",
+        "method":  "POST",
+        "path":  "/v2/groups/{group_openid}/approval_join_request/{member_openid}",
+        "request":  {
+                        "op":  "approve",
+                        "join_request_id":  "AURi8Rr6MfGdUNedupWf2uV5XiayURHaetzwGyOdrj6mHYOsfJFkbe9u8UjCMpLTxUouwr1SJ9IGEbxlbzDi43hPS4rw64G4i2Y4nL4DTH50U15xKPZYRsXPB7WUxZOUdceNSAv_GJtO4ffSrVZIhQxknoPD2SDT"
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_approval_join_request_member_openid.post.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_batch_remove_members.post",
+        "method":  "POST",
+        "path":  "/v2/groups/{group_openid}/batch_remove_members",
+        "request":  {
+                        "member_openids":  [
+                                               "7A3B9C1D5E2F4A6B8C0D1E3F5A7B9C2D"
+                                           ]
+                    },
+        "response":  {
+                         "remove_members_result":  "success",
+                         "add_to_member_blacklist_fail_openids":  [
+
+                                                                  ]
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_batch_remove_members.post.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_bot_state.get",
+        "method":  "GET",
+        "path":  "/v2/groups/{group_openid}/bot_state",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_bot_state.get.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_files.post",
+        "method":  "POST",
+        "path":  "/v2/groups/{group_openid}/files",
+        "request":  {
+                        "file_type":  1,
+                        "url":  "https://example.com/image.png",
+                        "srv_send_msg":  false
+                    },
+        "response":  {
+                         "file_uuid":  "uuid_a1b2c3d4e5f6",
+                         "file_info":  "AE86C5D3F0E14B238C656C0F6DD1D0479C",
+                         "ttl":  300
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_files.post.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_info.get",
+        "method":  "GET",
+        "path":  "/v2/groups/{group_openid}/info",
+        "request":  {
+
+                    },
+        "response":  {
+                         "group_openid":  "3E5D8A1F7B2C9E4D6A0F1B3C5D7E9F2A",
+                         "group_name":  "读书分享会",
+                         "group_finger_memo":  "每周共读一本好书",
+                         "group_class_text":  "文化",
+                         "group_tags":  [
+                                            "阅读",
+                                            "文学",
+                                            "成长"
+                                        ],
+                         "group_member_num":  256
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_info.get.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_join_request_list.get",
+        "method":  "GET",
+        "path":  "/v2/groups/{group_openid}/join_request_list",
+        "request":  {
+
+                    },
+        "response":  {
+                         "list":  [
+                                      {
+                                          "join_request_id":  "Ael-dmvlRdC9fZepnrfMhamsZgO103pSjmzwUz5SyyORaQMX-q0zkY3Q1caz71KiH2nJzehE-QWM-xCWzIsLg1i1vAPkdJfdPkUDVImXoiR8OY_s40J7OsFZGaEFUdDkIhAPs9uMXOxNpW91mGWQTlaFnmgksAxk",
+                                          "risk_tips":  "",
+                                          "union_openid":  "FE003FAF76C4817251FDC128A16753BB",
+                                          "member_openid":  "FE003FAF76C4817251FDC128A16753BB",
+                                          "username":  "痞孓小光光╮hw灰",
+                                          "apply_at":  "2026-08-05T14:19:09+08:00",
+                                          "apply_source":  "self_apply",
+                                          "invited_by":  "",
+                                          "bot":  false,
+                                          "verify_info":  {
+                                                              "method":  "verify_message",
+                                                              "verify_message":  "几款看看",
+                                                              "review_qa_list":  [
+
+                                                                                 ]
+                                                          }
+                                      }
+                                  ],
+                         "next_cursor":  "1785767153250497"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_join_request_list.get.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_member_blacklist.post",
+        "method":  "POST",
+        "path":  "/v2/groups/{group_openid}/member_blacklist",
+        "request":  {
+                        "op":  "add",
+                        "member_openids":  [
+                                               "7A3B9C1D5E2F4A6B8C0D1E3F5A7B9C2D"
+                                           ]
+                    },
+        "response":  {
+                         "fail_openids":  [
+
+                                          ]
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_member_blacklist.post.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_member_blacklist.get",
+        "method":  "GET",
+        "path":  "/v2/groups/{group_openid}/member_blacklist",
+        "request":  {
+
+                    },
+        "response":  {
+                         "users":  [
+                                       {
+                                           "union_openid":  "9F2E872045CCCC5948BEAF5B5FCCDF22",
+                                           "member_openid":  "7A3B9C1D5E2F4A6B8C0D1E3F5A7B9C2D",
+                                           "username":  "阳光少年",
+                                           "banned_at":  "2025-07-01T10:30:00+08:00",
+                                           "bot":  false
+                                       }
+                                   ],
+                         "next_cursor":  ""
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_member_blacklist.get.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_members.get",
+        "method":  "GET",
+        "path":  "/v2/groups/{group_openid}/members",
+        "request":  {
+
+                    },
+        "response":  {
+                         "members":  [
+                                         {
+                                             "member_openid":  "7A3B9C1D5E2F4A6B8C0D1E3F5A7B9C2D",
+                                             "username":  "阳光小助手",
+                                             "member_role":  "member",
+                                             "bot":  false,
+                                             "joined_at":  "2025-08-20T09:15:00+08:00",
+                                             "union_openid":  "9F2E872045CCCC5948BEAF5B5FCCDF22"
+                                         },
+                                         {
+                                             "member_openid":  "EC58D87F598C8294A533B9D458DAAF33",
+                                             "username":  "T小不点101",
+                                             "member_role":  "member",
+                                             "bot":  false,
+                                             "joined_at":  "2025-07-01T10:30:00+08:00",
+                                             "union_openid":  "FE003FAF76C4817251FDC128A16753BB"
+                                         }
+                                     ],
+                         "next_cursor":  "bG1fNmIxOTM1NTRjNy4zMA"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_members.get.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_messages.post",
+        "method":  "POST",
+        "path":  "/v2/groups/{group_openid}/messages",
+        "request":  {
+                        "msg_type":  0,
+                        "content":  "欢迎使用本群助手，有什么可以帮你的吗？",
+                        "msg_id":  "ROBOT1.0_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                        "msg_seq":  1
+                    },
+        "response":  {
+                         "id":  "ROBOT1.0_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+                         "timestamp":  "2026-07-21T10:00:00+08:00",
+                         "ext_info":  {
+                                          "ref_idx":  "REFIDX_xxxxxxxxxxxxxxx=="
+                                      }
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_messages.post.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_members_member_openid.get",
+        "method":  "GET",
+        "path":  "/v2/groups/{group_openid}/members/{member_openid}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "member_openid":  "7A3B9C1D5E2F4A6B8C0D1E3F5A7B9C2D",
+                         "username":  "小明",
+                         "member_role":  "admin",
+                         "bot":  false,
+                         "joined_at":  "2025-08-20T09:15:00+08:00",
+                         "union_openid":  "B4C6D8E0F2A4B6C8D0E2F4A6B8C0D2E4"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_members_member_openid.get.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_messages_message_id.delete",
+        "method":  "DELETE",
+        "path":  "/v2/groups/{group_openid}/messages/{message_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_messages_message_id.delete.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_restrict_chat_setting.post",
+        "method":  "POST",
+        "path":  "/v2/groups/{group_openid}/restrict_chat_setting",
+        "request":  {
+                        "members":  [
+                                        {
+                                            "op":  "add",
+                                            "member_openid":  "EC58D87F598C8294A533B9D458DAAF33",
+                                            "mute_expire_at":  "2026-08-05T11:23:05+08:00"
+                                        }
+                                    ]
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_restrict_chat_setting.post.html"
+    },
+    {
+        "operation":  "v2_groups_join_approval_strategy.get",
+        "method":  "GET",
+        "path":  "/v2/groups/join_approval_strategy",
+        "request":  {
+
+                    },
+        "response":  {
+                         "strategies":  [
+                                            {
+                                                "strategy_id":  "st_d83eca11e9",
+                                                "group_openids":  [
+
+                                                                  ],
+                                                "group_ids":  [
+
+                                                              ],
+                                                "whitelist_user_count":  2,
+                                                "is_enable":  "on",
+                                                "expire_at":  "2027-08-05T15:30:16+08:00",
+                                                "created_at":  "2026-08-05T15:30:16+08:00",
+                                                "updated_at":  "2026-08-05T15:45:28+08:00"
+                                            },
+                                            {
+                                                "strategy_id":  "st_7c0b77d442",
+                                                "group_openids":  [
+
+                                                                  ],
+                                                "group_ids":  [
+                                                                  "10****499"
+                                                              ],
+                                                "whitelist_user_count":  0,
+                                                "is_enable":  "on",
+                                                "expire_at":  "2027-08-04T11:20:40+08:00",
+                                                "created_at":  "2026-08-04T11:20:40+08:00",
+                                                "updated_at":  "2026-08-04T11:20:40+08:00"
+                                            },
+                                            {
+                                                "strategy_id":  "st_42cc272536",
+                                                "group_openids":  [
+
+                                                                  ],
+                                                "group_ids":  [
+                                                                  "26****763",
+                                                                  "26****978"
+                                                              ],
+                                                "whitelist_user_count":  3,
+                                                "is_enable":  "on",
+                                                "expire_at":  "2027-07-31T11:40:21+08:00",
+                                                "created_at":  "2026-07-31T11:40:21+08:00",
+                                                "updated_at":  "2026-08-05T14:28:37+08:00"
+                                            }
+                                        ],
+                         "next_cursor":  ""
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_join_approval_strategy.get.html"
+    },
+    {
+        "operation":  "v2_groups_join_approval_strategy.post",
+        "method":  "POST",
+        "path":  "/v2/groups/join_approval_strategy",
+        "request":  {
+                        "group_openids":  [
+                                              "\u003cxxxxxxxx1",
+                                              "xxxxx2\u003e"
+                                          ],
+                        "is_enable":  "on",
+                        "expire_at":  ""
+                    },
+        "response":  {
+                         "strategy_id":  "st_d83eca11e9",
+                         "is_enable":  "on",
+                         "expire_at":  "2027-08-05T15:30:16+08:00"
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_join_approval_strategy.post.html"
+    },
+    {
+        "operation":  "v2_groups_group_openid_restrict_chat_setting.get",
+        "method":  "GET",
+        "path":  "/v2/groups/{group_openid}/restrict_chat_setting",
+        "request":  {
+
+                    },
+        "response":  {
+                         "global_rule":  {
+                                             "mode":  "schedule",
+                                             "schedule_rules":  [
+                                                                    {
+                                                                        "task_id":  "task_7ffd5d31e2b37c1c872acb51",
+                                                                        "start_at":  "2026-07-22T10:44:00+08:00",
+                                                                        "end_at":  "2026-07-22T11:44:00+08:00",
+                                                                        "enabled":  false
+                                                                    },
+                                                                    {
+                                                                        "task_id":  "task_e9ca43ca9a31b539d824639c",
+                                                                        "start_at":  "2026-07-22T10:54:00+08:00",
+                                                                        "end_at":  "2026-07-22T11:54:00+08:00",
+                                                                        "enabled":  false
+                                                                    }
+                                                                ],
+                                             "recurring_rules":  [
+                                                                     {
+                                                                         "task_id":  "task_3a6348b8fb04bbc48b8a8709",
+                                                                         "weekdays":  [
+                                                                                          1,
+                                                                                          2,
+                                                                                          3,
+                                                                                          4,
+                                                                                          5,
+                                                                                          6,
+                                                                                          7
+                                                                                      ],
+                                                                         "start_time":  "13:05",
+                                                                         "end_time":  "14:05",
+                                                                         "enabled":  true
+                                                                     }
+                                                                 ]
+                                         },
+                         "members":  [
+                                         {
+                                             "member_openid":  "EC58D87F598C8294A533B9D458DAAF33",
+                                             "mute_expire_at":  "2026-08-05T11:23:04+08:00",
+                                             "username":  "T小不点101",
+                                             "union_openid":  "EC58D87F598C8294A533B9D458DAAF33"
+                                         }
+                                     ]
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_restrict_chat_setting.get.html"
+    },
+    {
+        "operation":  "v2_groups_join_approval_strategy_strategy_id.delete",
+        "method":  "DELETE",
+        "path":  "/v2/groups/join_approval_strategy/{strategy_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_join_approval_strategy_strategy_id.delete.html"
+    },
+    {
+        "operation":  "v2_groups_join_approval_strategy_strategy_id.patch",
+        "method":  "PATCH",
+        "path":  "/v2/groups/join_approval_strategy/{strategy_id}",
+        "request":  {
+                        "is_enable":  "off"
+                    },
+        "response":  {
+                         "is_enable":  "off",
+                         "expire_at":  "2027-08-05T15:30:16+08:00"
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_join_approval_strategy_strategy_id.patch.html"
+    },
+    {
+        "operation":  "v2_groups_join_approval_strategy_strategy_id_execute.post",
+        "method":  "POST",
+        "path":  "/v2/groups/join_approval_strategy/{strategy_id}/execute",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_join_approval_strategy_strategy_id_execute.post.html"
+    },
+    {
+        "operation":  "v2_groups_join_approval_strategy_strategy_id_whitelist_users.post",
+        "method":  "POST",
+        "path":  "/v2/groups/join_approval_strategy/{strategy_id}/whitelist_users",
+        "request":  {
+                        "op":  "add",
+                        "whitelist_users":  [
+                                                "1234567",
+                                                "1234568"
+                                            ]
+                    },
+        "response":  {
+                         "strategy_id":  "st_d83eca11e9",
+                         "whitelist_user_count":  2,
+                         "updated_at":  "2026-08-05T15:45:28+08:00"
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_join_approval_strategy_strategy_id_whitelist_users.post.html"
+    },
+    {
+        "operation":  "v2_menu.get",
+        "method":  "GET",
+        "path":  "/v2/menu",
+        "request":  {
+
+                    },
+        "response":  {
+                         "menu":  {
+                                      "items":  [
+                                                    {
+                                                        "type":  "send_message",
+                                                        "name":  "帮助",
+                                                        "send_message":  "/help"
+                                                    }
+                                                ]
+                                  },
+                         "version":  1
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_menu.get.html"
+    },
+    {
+        "operation":  "v2_menu.put",
+        "method":  "PUT",
+        "path":  "/v2/menu",
+        "request":  {
+                        "menu":  {
+                                     "items":  [
+                                                   {
+                                                       "type":  "send_message",
+                                                       "name":  "帮助",
+                                                       "send_message":  "/help"
+                                                   },
+                                                   {
+                                                       "type":  "link",
+                                                       "name":  "官网",
+                                                       "link":  "https://example.com"
+                                                   },
+                                                   {
+                                                       "type":  "menu",
+                                                       "name":  "更多",
+                                                       "sub_menu_items":  [
+                                                                              {
+                                                                                  "type":  "send_message",
+                                                                                  "name":  "设置",
+                                                                                  "send_message":  "/settings"
+                                                                              }
+                                                                          ]
+                                                   }
+                                               ]
+                                 }
+                    },
+        "response":  {
+                         "version":  1
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_menu.put.html"
+    },
+    {
+        "operation":  "v2_panels.get",
+        "method":  "GET",
+        "path":  "/v2/panels",
+        "request":  {
+
+                    },
+        "response":  {
+                         "records":  [
+                                         {
+                                             "panel_id":  "p_102030405_x8k2",
+                                             "scope":  "c2c",
+                                             "target_type":  "all",
+                                             "panel":  {
+                                                           "items":  [
+                                                                         {
+                                                                             "type":  "command",
+                                                                             "name":  "查询天气",
+                                                                             "desc":  "查询当前天气"
+                                                                         }
+                                                                     ]
+                                                       },
+                                             "version":  1
+                                         }
+                                     ],
+                         "next_cursor":  "",
+                         "is_end":  true
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_panels.get.html"
+    },
+    {
+        "operation":  "v2_panels_panel_id.delete",
+        "method":  "DELETE",
+        "path":  "/v2/panels/{panel_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_panels_panel_id.delete.html"
+    },
+    {
+        "operation":  "v2_panels_panel_id.get",
+        "method":  "GET",
+        "path":  "/v2/panels/{panel_id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "panel_id":  "p_x8k2x8k2x8k2",
+                         "scope":  "group",
+                         "target_type":  "specific",
+                         "panel":  {
+                                       "items":  [
+                                                     {
+                                                         "type":  "command",
+                                                         "name":  "群签到",
+                                                         "desc":  "每日签到"
+                                                     }
+                                                 ]
+                                   },
+                         "version":  1,
+                         "user_openids":  [
+
+                                          ],
+                         "group_openids":  [
+                                               "openid_group_001"
+                                           ]
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_panels_panel_id.get.html"
+    },
+    {
+        "operation":  "v2_panels.post",
+        "method":  "POST",
+        "path":  "/v2/panels",
+        "request":  {
+                        "scope":  "c2c",
+                        "target_type":  "all",
+                        "panel":  {
+                                      "items":  [
+                                                    {
+                                                        "type":  "command",
+                                                        "name":  "查询天气",
+                                                        "desc":  "查询当前天气"
+                                                    },
+                                                    {
+                                                        "type":  "link",
+                                                        "name":  "更多服务",
+                                                        "link":  "https://example.com"
+                                                    }
+                                                ],
+                                      "remark":  "C2C面板"
+                                  }
+                    },
+        "response":  {
+                         "panel_id":  "p_x8k2x8k2x8k2"
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_panels.post.html"
+    },
+    {
+        "operation":  "v2_users_user_id_upload_prepare.post",
+        "method":  "POST",
+        "path":  "/v2/users/{user_id}/upload_prepare",
+        "request":  {
+                        "file_type":  2,
+                        "file_size":  "31457280",
+                        "file_name":  "demo.mp4",
+                        "md5":  "d41d8cd98f00b204e9800998ecf8427e",
+                        "sha1":  "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                        "md5_10m":  "c4d8c5f3a2b1e0f9a8b7c6d5e4f3a2b1"
+                    },
+        "response":  {
+                         "upload_id":  "upload_a1b2c3d4e5f6",
+                         "block_size":  "10485760",
+                         "parts":  [
+                                       {
+                                           "index":  0,
+                                           "presigned_url":  "https://cos.example.com/upload?partNumber=1\u0026sign=aaa",
+                                           "block_size":  "10485760"
+                                       },
+                                       {
+                                           "index":  1,
+                                           "presigned_url":  "https://cos.example.com/upload?partNumber=2\u0026sign=bbb",
+                                           "block_size":  "10485760"
+                                       },
+                                       {
+                                           "index":  2,
+                                           "presigned_url":  "https://cos.example.com/upload?partNumber=3\u0026sign=ccc",
+                                           "block_size":  "10485760"
+                                       }
+                                   ],
+                         "upload_config":  {
+                                               "concurrency":  1,
+                                               "retry_timeout":  300,
+                                               "retry_delay":  1
+                                           }
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_id_upload_prepare.post.html"
+    },
+    {
+        "operation":  "v2_panels_panel_id.put",
+        "method":  "PUT",
+        "path":  "/v2/panels/{panel_id}",
+        "request":  {
+                        "panel":  {
+                                      "items":  [
+                                                    {
+                                                        "type":  "command",
+                                                        "name":  "新指令",
+                                                        "desc":  "更新后的指令"
+                                                    }
+                                                ],
+                                      "remark":  "更新备注"
+                                  }
+                    },
+        "response":  {
+                         "version":  1
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_panels_panel_id.put.html"
+    },
+    {
+        "operation":  "v2_users_user_id_upload_part_finish.post",
+        "method":  "POST",
+        "path":  "/v2/users/{user_id}/upload_part_finish",
+        "request":  {
+                        "upload_id":  "upload_a1b2c3d4e5f6",
+                        "part_index":  0,
+                        "block_size":  "10485760",
+                        "md5":  "c4d8c5f3a2b1e0f9a8b7c6d5e4f3a2b1"
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_id_upload_part_finish.post.html"
+    },
+    {
+        "operation":  "v2_users_user_openid_files.post",
+        "method":  "POST",
+        "path":  "/v2/users/{user_openid}/files",
+        "request":  {
+                        "file_type":  1,
+                        "url":  "https://example.com/image.png",
+                        "srv_send_msg":  false
+                    },
+        "response":  {
+                         "file_uuid":  "uuid_a1b2c3d4e5f6",
+                         "file_info":  "AE86C5D3F0E14B238C656C0F6DD1D0479C",
+                         "ttl":  300
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_files.post.html"
+    },
+    {
+        "operation":  "v2_panels_panel_id_target.put",
+        "method":  "PUT",
+        "path":  "/v2/panels/{panel_id}/target",
+        "request":  {
+                        "op":  "add",
+                        "group_openids":  [
+                                              "openid_group_003"
+                                          ]
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_panels_panel_id_target.put.html"
+    },
+    {
+        "operation":  "v2_users_user_openid_messages_message_id.delete",
+        "method":  "DELETE",
+        "path":  "/v2/users/{user_openid}/messages/{message_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_messages_message_id.delete.html"
+    },
+    {
+        "operation":  "v2_users_user_openid_messages.post",
+        "method":  "POST",
+        "path":  "/v2/users/{user_openid}/messages",
+        "request":  {
+                        "content":  "你好，欢迎使用机器人助手！",
+                        "msg_type":  0,
+                        "msg_id":  "ROBOT1.0_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                        "msg_seq":  1
+                    },
+        "response":  {
+                         "id":  "ROBOT1.0_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                         "timestamp":  "2026-07-21T10:30:00+08:00",
+                         "ext_info":  {
+                                          "ref_idx":  "REFIDX_xxxxxxxxxxxxxxxxxxxx=="
+                                      }
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_messages.post.html"
+    },
+    {
+        "operation":  "v2_users_user_openid_stream_messages.post",
+        "method":  "POST",
+        "path":  "/v2/users/{user_openid}/stream_messages",
+        "request":  {
+                        "input_mode":  "replace",
+                        "input_state":  1,
+                        "index":  0,
+                        "content_type":  "markdown",
+                        "content_raw":  "正在生成回答，请稍候",
+                        "msg_id":  "ROBOT1.0_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                        "msg_seq":  1
+                    },
+        "response":  {
+                         "id":  "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                         "timestamp":  "2026-07-21T10:00:01+08:00",
+                         "ext_info":  {
+                                          "ref_idx":  "REFIDX_xxxxxxxxxxxxxxx=="
+                                      }
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_stream_messages.post.html"
+    },
+    {
+        "operation":  "get_guild_api_permission",
+        "method":  "GET",
+        "path":  "/guilds/{guild_id}/api_permission",
+        "request":  {
+
+                    },
+        "response":  {
+                         "apis":  [
+                                      {
+                                          "path":  "/guilds/{guild_id}/members/{user_id}",
+                                          "method":  "GET",
+                                          "desc":  "获取当前频道成员信息",
+                                          "auth_status":  0
+                                      },
+                                      {
+                                          "path":  "/channels/{channel_id}/messages",
+                                          "method":  "POST",
+                                          "desc":  "创建消息",
+                                          "auth_status":  1
+                                      }
+                                  ]
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/api_permissions/get_guild_api_permission.html"
+    },
+    {
+        "operation":  "delete_guild_announces",
+        "method":  "DELETE",
+        "path":  "/guilds/{guild_id}/announces/{message_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/announces/delete_guild_announces.html"
+    },
+    {
+        "operation":  "post_api_permission_demand",
+        "method":  "POST",
+        "path":  "/guilds/{guild_id}/api_permission/demand",
+        "request":  {
+                        "channel_id":  "123456",
+                        "api_identify":  {
+                                             "path":  "/guilds/{guild_id}",
+                                             "method":  "GET"
+                                         },
+                        "desc":  "显示频道信息"
+                    },
+        "response":  {
+                         "guild_id":  "xxxxxx",
+                         "channel_id":  "123456",
+                         "api_identify":  {
+                                              "path":  "/guilds/{guild_id}",
+                                              "method":  "GET"
+                                          },
+                         "title":  "王者机器人申请授权频道信息接口权限",
+                         "desc":  "申请权限后才能正常使用机器人显示频道信息功能"
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/api_permissions/post_api_permission_demand.html"
+    },
+    {
+        "operation":  "audio_control",
+        "method":  "POST",
+        "path":  "/channels/{channel_id}/audio",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/audio/audio_control.html"
+    },
+    {
+        "operation":  "delete_mic",
+        "method":  "DELETE",
+        "path":  "/channels/{channel_id}/mic",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/audio/delete_mic.html"
+    },
+    {
+        "operation":  "delete_thread",
+        "method":  "DELETE",
+        "path":  "/channels/{channel_id}/threads/{thread_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/forum/delete_thread.html"
+    },
+    {
+        "operation":  "post_guild_announces",
+        "method":  "POST",
+        "path":  "/guilds/{guild_id}/announces",
+        "request":  {
+                        "channel_id":  "123456",
+                        "message_id":  "xxxxxx"
+                    },
+        "response":  {
+                         "guild_id":  "xxxxxx",
+                         "channel_id":  "xxxxx",
+                         "message_id":  "",
+                         "announces_type":  1,
+                         "recommend_channels":  [
+                                                    {
+                                                        "channel_id":  "xxxx",
+                                                        "introduce":  "推荐语"
+                                                    },
+                                                    {
+                                                        "channel_id":  "xxxx",
+                                                        "introduce":  "推荐语"
+                                                    }
+                                                ]
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/announces/post_guild_announces.html"
+    },
+    {
+        "operation":  "put_mic",
+        "method":  "PUT",
+        "path":  "/channels/{channel_id}/mic",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/audio/put_mic.html"
+    },
+    {
+        "operation":  "get_threads_list",
+        "method":  "GET",
+        "path":  "/channels/{channel_id}/threads",
+        "request":  {
+
+                    },
+        "response":  {
+                         "threads":  [
+                                         {
+                                             "guild_id":  "75827011639035987",
+                                             "channel_id":  "2324603",
+                                             "author_id":  "144115218680332809",
+                                             "thread_info":  {
+                                                                 "thread_id":  "B_59101362700301001441152186803328090X60-1645416537",
+                                                                 "title":  "帖子标题1",
+                                                                 "content":  "{\"paragraphs\":[{\"elems\":[{\"text\":{\"text\":\"发送消息 | QQ机器人文档\"},\"type\":1}],\"props\":{}},{\"elems\":[{\"text\":{\"text\":\"• 主动消息：发送消息时，未填充msg_id 字段的消息。\"},\"type\":1}],\"props\":{}}]}",
+                                                                 "date_time":  "2022-02-21T12:08:57+08:00"
+                                                             }
+                                         },
+                                         {
+                                             "guild_id":  "75827011639035987",
+                                             "channel_id":  "2324603",
+                                             "author_id":  "144115218680332809",
+                                             "thread_info":  {
+                                                                 "thread_id":  "B_79051362477c03001441152186803328090X60-1645413753",
+                                                                 "title":  "帖子标题2",
+                                                                 "content":  "{\"paragraphs\":[{\"elems\":[{\"text\":{\"text\":\"发送消息 | QQ机器人文档\"},\"type\":1}],\"props\":{}},{\"elems\":[{\"text\":{\"text\":\"• 主动消息：发送消息时，未填充msg_id 字段的消息。\"},\"type\":1}],\"props\":{}}]}",
+                                                                 "date_time":  "2022-02-21T11:22:33+08:00"
+                                                             }
+                                         }
+                                     ],
+                         "is_finish":  1
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/forum/get_threads_list.html"
+    },
+    {
+        "operation":  "get_thread",
+        "method":  "GET",
+        "path":  "/channels/{channel_id}/threads/{thread_id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "thread":  {
+                                        "guild_id":  "75827011639035987",
+                                        "channel_id":  "2324603",
+                                        "author_id":  "144115218680332809",
+                                        "thread_info":  {
+                                                            "thread_id":  "B_79051362477c03001441152186803328090X60-1645413753",
+                                                            "title":  "帖子标题",
+                                                            "content":  "{\"paragraphs\":[{\"elems\":[{\"text\":{\"text\":\"发送消息 | QQ机器人文档\"},\"type\":1}],\"props\":{}},{\"elems\":[{\"text\":{\"text\":\"• 主动消息：发送消息时，未填充msg_id 字段的消息。\"},\"type\":1}],\"props\":{}}]}",
+                                                            "date_time":  "2022-02-21T11:22:33+08:00"
+                                                        }
+                                    }
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/forum/get_thread.html"
+    },
+    {
+        "operation":  "put_thread",
+        "method":  "PUT",
+        "path":  "/channels/{channel_id}/threads",
+        "request":  {
+                        "title":  "title",
+                        "content":  "\u003chtml lang=\"en-US\"\u003e\u003cbody\u003e\u003ca href=\"https://bot.q.qq.com/wiki\" title=\"QQ机器人文档Title\"\u003eQQ机器人文档\u003c/a\u003e\n\u003cul\u003e\u003cli\u003e主动消息：发送消息时，未填msg_id字段的消息。\u003c/li\u003e\u003cli\u003e被动消息：发送消息时，填充了msg_id字段的消息。\u003c/li\u003e\u003c/ul\u003e\u003c/body\u003e\u003c/html\u003e",
+                        "format":  2
+                    },
+        "response":  {
+                         "task_id":  "1645413752912602306",
+                         "create_time":  "1645503180"
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/forum/put_thread.html"
+    },
+    {
+        "operation":  "get_pins_message",
+        "method":  "GET",
+        "path":  "/channels/{channel_id}/pins",
+        "request":  {
+
+                    },
+        "response":  {
+                         "guild_id":  "xxxxxx",
+                         "channel_id":  "xxxxxx",
+                         "message_ids":  [
+                                             "xxxxx"
+                                         ]
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/pins/get_pins_message.html"
+    },
+    {
+        "operation":  "delete_pins_message",
+        "method":  "DELETE",
+        "path":  "/channels/{channel_id}/pins/{message_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/pins/delete_pins_message.html"
+    },
+    {
+        "operation":  "delete_schedule",
+        "method":  "DELETE",
+        "path":  "/channels/{channel_id}/schedules/{schedule_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/schedule/delete_schedule.html"
+    },
+    {
+        "operation":  "put_pins_message",
+        "method":  "PUT",
+        "path":  "/channels/{channel_id}/pins/{message_id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "guild_id":  "xxxxxx",
+                         "channel_id":  "xxxxxx",
+                         "message_ids":  [
+                                             "xxxxx"
+                                         ]
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/pins/put_pins_message.html"
+    },
+    {
+        "operation":  "get_schedule",
+        "method":  "GET",
+        "path":  "/channels/{channel_id}/schedules/{schedule_id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "id":  "112233",
+                         "name":  "上王者",
+                         "start_timestamp":  "1642076400000",
+                         "end_timestamp":  "1642083600000",
+                         "creator":  {
+                                         "user":  {
+                                                      "id":  "xxxxxx",
+                                                      "username":  "xxxxxx",
+                                                      "bot":  true
+                                                  },
+                                         "nick":  "",
+                                         "joined_at":  "2022-01-11T10:24:13+08:00"
+                                     },
+                         "jump_channel_id":  "0",
+                         "remind_type":  "0"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/schedule/get_schedule.html"
+    },
+    {
+        "operation":  "get_schedules",
+        "method":  "GET",
+        "path":  "/channels/{channel_id}/schedules",
+        "request":  {
+
+                    },
+        "response":  {
+                         "id":  "xxxxxx",
+                         "name":  "上王者",
+                         "start_timestamp":  "1642076400000",
+                         "end_timestamp":  "1642083600000",
+                         "creator":  {
+                                         "user":  {
+                                                      "id":  "xxxxxx",
+                                                      "username":  "xxxxxx",
+                                                      "bot":  true
+                                                  },
+                                         "nick":  "",
+                                         "joined_at":  "2022-01-11T10:24:13+08:00"
+                                     },
+                         "jump_channel_id":  "0",
+                         "remind_type":  "0"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/schedule/get_schedules.html"
+    },
+    {
+        "operation":  "patch_schedule",
+        "method":  "PATCH",
+        "path":  "/channels/{channel_id}/schedules/{schedule_id}",
+        "request":  {
+                        "schedule":  {
+                                         "name":  "今晚八点上王者",
+                                         "start_timestamp":  "1642076453000",
+                                         "end_timestamp":  "1642083653000",
+                                         "jump_channel_id":  "0",
+                                         "remind_type":  "0"
+                                     }
+                    },
+        "response":  {
+                         "id":  "xxxxxx",
+                         "name":  "今晚八点上王者",
+                         "start_timestamp":  "1642076453000",
+                         "end_timestamp":  "1642083653000",
+                         "creator":  {
+                                         "user":  {
+                                                      "id":  "xxxxxx",
+                                                      "username":  "xxxxxx",
+                                                      "bot":  true
+                                                  },
+                                         "nick":  "",
+                                         "joined_at":  "2022-01-13T11:02:21+08:00"
+                                     },
+                         "jump_channel_id":  "0",
+                         "remind_type":  "0"
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/schedule/patch_schedule.html"
+    },
+    {
+        "operation":  "post_schedule",
+        "method":  "POST",
+        "path":  "/channels/{channel_id}/schedules",
+        "request":  {
+                        "schedule":  {
+                                         "name":  "上王者",
+                                         "start_timestamp":  "1642076453000",
+                                         "end_timestamp":  "1642083653000",
+                                         "jump_channel_id":  "0",
+                                         "remind_type":  "0"
+                                     }
+                    },
+        "response":  {
+                         "id":  "xxxxxx",
+                         "name":  "上王者",
+                         "start_timestamp":  "1642076400000",
+                         "end_timestamp":  "1642083600000",
+                         "creator":  {
+                                         "user":  {
+                                                      "id":  "xxxxxx",
+                                                      "username":  "xxxxxx",
+                                                      "bot":  true
+                                                  },
+                                         "nick":  "",
+                                         "joined_at":  "2022-01-11T10:24:13+08:00"
+                                     },
+                         "jump_channel_id":  "0",
+                         "remind_type":  "0"
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/content/schedule/post_schedule.html"
+    },
+    {
+        "operation":  "dms.delete.dms_guild_id_messages_message_id",
+        "method":  "DELETE",
+        "path":  "/dms/{guild_id}/messages/{message_id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "guild_id":  "xxxxxx",
+                         "channel_id":  "xxxxxx",
+                         "create_time":  "1642545606"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/dms.html"
+    },
+    {
+        "operation":  "dms.post.dms_guild_id_messages",
+        "method":  "POST",
+        "path":  "/dms/{guild_id}/messages",
+        "request":  {
+                        "recipient_id":  "123456",
+                        "source_guild_id":  "112233"
+                    },
+        "response":  {
+                         "guild_id":  "xxxxxx",
+                         "channel_id":  "xxxxxx",
+                         "create_time":  "1642545606"
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/dms.html"
+    },
+    {
+        "operation":  "recall",
+        "method":  "DELETE",
+        "path":  "/channels/{channel_id}/messages/{message_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/recall.html"
+    },
+    {
+        "operation":  "send",
+        "method":  "POST",
+        "path":  "/channels/{channel_id}/messages",
+        "request":  {
+                        "code":  304023,
+                        "message":  "push message is waiting for audit now",
+                        "data":  {
+                                     "message_audit":  {
+                                                           "audit_id":  "ab9bd72f-19e8-4394-b09e-66caca0d64e4"
+                                                       }
+                                 }
+                    },
+        "response":  {
+                         "id":  "xxxxxx",
+                         "channel_id":  "xxxxxx",
+                         "guild_id":  "xxxxxx",
+                         "content":  "\u003c@!1234\u003ehello world",
+                         "timestamp":  "2021-05-13T14:45:45+08:00",
+                         "tts":  false,
+                         "mention_everyone":  false,
+                         "author":  {
+                                        "id":  "xxxxxx",
+                                        "username":  "abc",
+                                        "avatar":  "",
+                                        "bot":  true
+                                    },
+                         "embeds":  [
+                                        {
+
+                                        }
+                                    ],
+                         "pinned":  false,
+                         "type":  0,
+                         "flags":  0
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/message/send.html"
+    },
+    {
+        "operation":  "get_channel_roles_permissions",
+        "method":  "GET",
+        "path":  "/channels/{channel_id}/roles/{role_id}/permissions",
+        "request":  {
+
+                    },
+        "response":  {
+                         "channel_id":  "123456",
+                         "role_id":  "112233",
+                         "permissions":  "5"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role-group/channel_permissions/get_channel_roles_permissions.html"
+    },
+    {
+        "operation":  "get_channel_permissions",
+        "method":  "GET",
+        "path":  "/channels/{channel_id}/members/{user_id}/permissions",
+        "request":  {
+
+                    },
+        "response":  {
+                         "channel_id":  "123456",
+                         "user_id":  "112233",
+                         "permissions":  "4"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role-group/channel_permissions/get_channel_permissions.html"
+    },
+    {
+        "operation":  "put_channel_roles_permissions",
+        "method":  "PUT",
+        "path":  "/channels/{channel_id}/roles/{role_id}/permissions",
+        "request":  {
+
+                    },
+        "response":  {
+                         "add":  "1",
+                         "remove":  "4"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role-group/channel_permissions/put_channel_roles_permissions.html"
+    },
+    {
+        "operation":  "put_channel_permissions",
+        "method":  "PUT",
+        "path":  "/channels/{channel_id}/members/{user_id}/permissions",
+        "request":  {
+
+                    },
+        "response":  {
+                         "add":  "1",
+                         "remove":  "4"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role-group/channel_permissions/put_channel_permissions.html"
+    },
+    {
+        "operation":  "get_guild_roles",
+        "method":  "GET",
+        "path":  "/guilds/{guild_id}/roles",
+        "request":  {
+
+                    },
+        "response":  {
+                         "guild_id":  "123456",
+                         "roles":  [
+                                       {
+                                           "id":  "4",
+                                           "name":  "创建者",
+                                           "color":  4294927682,
+                                           "hoist":  1,
+                                           "number":  1,
+                                           "member_limit":  1
+                                       },
+                                       {
+                                           "id":  "2",
+                                           "name":  "管理员",
+                                           "color":  4280276644,
+                                           "hoist":  1,
+                                           "number":  5,
+                                           "member_limit":  50
+                                       }
+                                   ],
+                         "role_num_limit":  "30"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role-group/get_guild_roles.html"
+    },
+    {
+        "operation":  "delete_guild_member_role",
+        "method":  "DELETE",
+        "path":  "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role-group/delete_guild_member_role.html"
+    },
+    {
+        "operation":  "post_guild_role",
+        "method":  "POST",
+        "path":  "/guilds/{guild_id}/roles",
+        "request":  {
+                        "name":  "test",
+                        "color":  99999,
+                        "hoist":  "1"
+                    },
+        "response":  {
+                         "role_id":  "10177739",
+                         "role":  {
+                                      "id":  "10177739",
+                                      "name":  "test",
+                                      "color":  99999,
+                                      "hoist":  1,
+                                      "number":  0,
+                                      "member_limit":  2000
+                                  }
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role-group/post_guild_role.html"
+    },
+    {
+        "operation":  "delete_guild_role",
+        "method":  "DELETE",
+        "path":  "/guilds/{guild_id}/roles/{role_id}",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role-group/delete_guild_role.html"
+    },
+    {
+        "operation":  "patch_guild_role",
+        "method":  "PATCH",
+        "path":  "/guilds/{guild_id}/roles/{role_id}",
+        "request":  {
+                        "name":  "test",
+                        "color":  99999,
+                        "hoist":  "1"
+                    },
+        "response":  {
+                         "guild_id":  "3489223429684602178",
+                         "role_id":  "10177739",
+                         "role":  {
+                                      "id":  "10177739",
+                                      "name":  "test",
+                                      "color":  99999,
+                                      "hoist":  1,
+                                      "number":  1,
+                                      "member_limit":  2000
+                                  }
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role-group/patch_guild_role.html"
+    },
+    {
+        "operation":  "put_guild_member_role",
+        "method":  "PUT",
+        "path":  "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "channel":  {
+                                         "id":  "1744939"
+                                     }
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role-group/put_guild_member_role.html"
+    },
+    {
+        "operation":  "get_online_nums",
+        "method":  "GET",
+        "path":  "/channels/{channel_id}/online_nums",
+        "request":  {
+
+                    },
+        "response":  {
+                         "online_nums":  1
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role/get_online_nums.html"
+    },
+    {
+        "operation":  "get_member",
+        "method":  "GET",
+        "path":  "/guilds/{guild_id}/members/{user_id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "user":  {
+                                      "id":  "2823701233424295228",
+                                      "username":  "xxx",
+                                      "avatar":  "https://qqchannel-profile-1251316161.file.myqcloud.com/xxxxxxx",
+                                      "bot":  false,
+                                      "union_openid":  "",
+                                      "union_user_account":  ""
+                                  },
+                         "nick":  "",
+                         "roles":  [
+                                       "1"
+                                   ],
+                         "joined_at":  "2021-12-05T14:08:29+08:00"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role/member/get_member.html"
+    },
+    {
+        "operation":  "get_members",
+        "method":  "GET",
+        "path":  "/guilds/{guild_id}/members",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role/member/get_members.html"
+    },
+    {
+        "operation":  "delete_member",
+        "method":  "DELETE",
+        "path":  "/guilds/{guild_id}/members/{user_id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "add_blacklist":  true,
+                         "delete_history_msg_days":  -1
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role/member/delete_member.html"
+    },
+    {
+        "operation":  "get_role_members",
+        "method":  "GET",
+        "path":  "/guilds/{guild_id}/roles/{role_id}/members",
+        "request":  {
+
+                    },
+        "response":  {
+                         "data":  [
+                                      {
+                                          "user":  {
+                                                       "id":  "xxx",
+                                                       "username":  "xxx",
+                                                       "avatar":  "xxx",
+                                                       "bot":  false
+                                                   },
+                                          "nick":  "xxx",
+                                          "joined_at":  "2021-11-03T20:41:36+08:00"
+                                      }
+                                  ],
+                         "next":  "0"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/role/member/get_role_members.html"
+    },
+    {
+        "operation":  "patch_guild_member_mute",
+        "method":  "PATCH",
+        "path":  "/guilds/{guild_id}/members/{user_id}/mute",
+        "request":  {
+
+                    },
+        "response":  {
+                         "mute_end_timestamp":  "1641916800",
+                         "mute_seconds":  "120"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/speak/patch_guild_member_mute.html"
+    },
+    {
+        "operation":  "patch_guild_mute_multi_member",
+        "method":  "PATCH",
+        "path":  "/guilds/{guild_id}/mute",
+        "request":  {
+                        "mute_end_timestamp":  "1641916800",
+                        "mute_seconds":  "120",
+                        "user_ids":  [
+                                         "1201318637970874066",
+                                         "1201318637970874067"
+                                     ]
+                    },
+        "response":  {
+                         "user_ids":  [
+                                          "1201318637970874066"
+                                      ]
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/speak/patch_guild_mute_multi_member.html"
+    },
+    {
+        "operation":  "message_setting",
+        "method":  "GET",
+        "path":  "/guilds/{guild_id}/message/setting",
+        "request":  {
+
+                    },
+        "response":  {
+                         "disable_create_dm":  true,
+                         "disable_push_msg":  false,
+                         "channel_ids":  [
+                                             "1146313",
+                                             "2651849",
+                                             "2651149"
+                                         ],
+                         "channel_push_max_num":  12
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/speak/setting/message_setting.html"
+    },
+    {
+        "operation":  "patch_guild_mute",
+        "method":  "PATCH",
+        "path":  "/guilds/{guild_id}/mute",
+        "request":  {
+
+                    },
+        "response":  {
+                         "mute_end_timestamp":  "1641916800",
+                         "mute_seconds":  "120"
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/channel/speak/patch_guild_mute.html"
+    },
+    {
+        "operation":  "gateway_bot.get",
+        "method":  "GET",
+        "path":  "/gateway/bot",
+        "request":  {
+
+                    },
+        "response":  {
+
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/openapi/wss/shard_url_get.html"
+    },
+    {
+        "operation":  "channel_reactions.put",
+        "method":  "PUT",
+        "path":  "/channels/{channel_id}/messages/{message_id}/reactions/{type}/{id}",
+        "request":  {
+                        "users":  [
+                                      {
+                                          "id":  "1158788878435714165",
+                                          "username":  "频道机器人",
+                                          "avatar":  "http://thirdqq.qlogo.cn/g?b=oidb\u0026k=T2qBkyqicopYXA5mn0lBkqA\u0026s=0\u0026t=1635736336"
+                                      }
+                                  ],
+                        "cookie":  "1_2",
+                        "is_end":  false
+                    },
+        "response":  {
+                         "user_id":  "1111222233333",
+                         "emoji":  {
+                                       "id":  "277",
+                                       "type":  1
+                                   },
+                         "channel_id":  "12345",
+                         "guild_id":  "11110011112222",
+                         "target":  {
+                                        "id":  "2",
+                                        "type":  0
+                                    }
+                     },
+        "requestSampleFound":  true,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/trans/emoji.html"
+    },
+    {
+        "operation":  "channel_reactions.delete",
+        "method":  "DELETE",
+        "path":  "/channels/{channel_id}/messages/{message_id}/reactions/{type}/{id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "user_id":  "1111222233333",
+                         "emoji":  {
+                                       "id":  "277",
+                                       "type":  1
+                                   },
+                         "channel_id":  "12345",
+                         "guild_id":  "11110011112222",
+                         "target":  {
+                                        "id":  "2",
+                                        "type":  0
+                                    }
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/trans/emoji.html"
+    },
+    {
+        "operation":  "channel_reactions.get",
+        "method":  "GET",
+        "path":  "/channels/{channel_id}/messages/{message_id}/reactions/{type}/{id}",
+        "request":  {
+
+                    },
+        "response":  {
+                         "user_id":  "1111222233333",
+                         "emoji":  {
+                                       "id":  "277",
+                                       "type":  1
+                                   },
+                         "channel_id":  "12345",
+                         "guild_id":  "11110011112222",
+                         "target":  {
+                                        "id":  "2",
+                                        "type":  0
+                                    }
+                     },
+        "requestSampleFound":  false,
+        "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/trans/emoji.html"
+    }
+]

@@ -1,0 +1,59 @@
+name: Verify Astra
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: astra_test
+          POSTGRES_DB: astra_ci
+        ports: ["5432:5432"]
+        options: --health-cmd="pg_isready -U postgres" --health-interval=5s --health-timeout=3s --health-retries=20
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: astra_test
+          MYSQL_DATABASE: astra_ci
+        ports: ["3306:3306"]
+        options: --health-cmd="mysqladmin ping -h localhost -pastra_test" --health-interval=5s --health-timeout=3s --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Install disposable Redis test binary
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-server
+      - name: Verify and package
+        run: >
+          sh ./mvnw --batch-mode --no-transfer-progress verify -Papi-artifacts
+          -Dastra.test.postgresql.url=jdbc:postgresql://127.0.0.1:5432/astra_ci
+          -Dastra.test.postgresql.password=astra_test
+          -Dastra.test.mysql.url=jdbc:mysql://127.0.0.1:3306/astra_ci
+          -Dastra.test.mysql.password=astra_test
+          -Dastra.test.redisExecutable=/usr/bin/redis-server
+      - name: Assemble distribution
+        run: sh scripts/package-release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: astra-java21
+          path: |
+            release/*.zip
+            release/*.properties
+            release/*.pom
+            release/init.*
+            release/SHA256SUMS
+            target/astra-runtime/astra-runtime-*.jar
+            target/astra-api/astra-api-*.jar
+            target/astra-example-plugin/astra-example-plugin-*.jar
+            target/astra-runtime/surefire-reports/

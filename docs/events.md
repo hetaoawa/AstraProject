@@ -1,122 +1,59 @@
-# 事件与消息模型
+# 事件与报文归档
 
-框架提供原始事件、指定类型事件和标准化事件三种用法。常见业务优先使用标准化事件；需要读取新字段或尚未建模的事件时使用原始 JSON。
+插件可通过事件对象读取已经解析的字段，也可以单独开启报文归档，保存完整的 Webhook 和 WebSocket 接收内容。消息字段见 [消息与平台请求](messages.md)，事件匹配注解见 [插件开发](plugins.md#事件注解)。
 
-## 原始事件
+## 申请与成员变更
 
-```java
-QQBot.Plugin plugin = bot.plugin("events");
-plugin.onEvent(event -> {
-    System.out.println(event.type());
-    System.out.println(event.raw());
-});
-```
+`RequestEvent.request()` 返回入群申请，包含申请人、邀请人、已知操作人、`joinRequestId`、风险提示、申请时间与来源、验证文本、审核问答和自动批准策略。
 
-`QQEvent` 字段：
+`NoticeEvent.memberChange()` 返回加入、离开或更新的目标成员，以及已知操作人、申请和验证字段。平台没有提供操作人时，该字段保持未知。入群申请只补充申请人资料，不登记为已加入成员。
 
-| 字段 | 说明 |
+## 事件类型
+
+| 事件类别 | 类型化入口 |
 | --- | --- |
-| `id()` | 最外层事件 ID |
-| `op()` | Gateway/Webhook Opcode |
-| `sequence()` | WebSocket 序列号；Webhook 可能为空 |
-| `type()` | Dispatch 事件类型，例如 `C2C_MESSAGE_CREATE` |
-| `data()` | 事件的 `d` 节点 |
-| `raw()` | 完整原始 JSON |
+| 六种聊天消息 | `MessageEvent.message().content()` |
+| 三种频道撤回事件 | `MessageRecallEvent.originalMessage()`、`operator()` |
+| 入群申请 | `RequestEvent.request()` |
+| 群和频道成员变更 | `NoticeEvent.memberChange()` |
+| 频道和子频道变更 | `NoticePayload.Guild`、`Channel` |
+| 好友、单聊推送和群机器人状态 | `Friend`、`C2cPermission`、`GroupBotState` |
+| 互动、授权和订阅 | `Interaction`（含 `resolved` 嵌套字段）、`Subscription` |
+| 表态和消息审核 | `Reaction`、`Audit` |
+| 音频、语音和直播成员 | `Audio`、`AudioMember` |
+| 论坛和开放论坛 | `Forum`（主题、帖子、回复）、`ForumAudit` |
+| 网关控制和 READY | `MetaEvent.details()`，含完整 payload |
+| 未知事件 | `RawEvent.data().raw()`；归档另存完整 envelope |
 
-`raw()` 和 `data()` 使用 Jackson `JsonNode`，可用于读取尚未建模的官方字段。
+通知类别在 `NoticeEvent.details()` 中有对应类型，事件经过队列保存和恢复后仍保留这些类型。字段依据 [官方事件订阅表](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/event-emit.html) 及对应模型文档整理。开放论坛正文保留平台提供的字符串。
 
-## 指定事件类型
+## 开启报文归档
 
-```java
-plugin.onEvent("FRIEND_ADD", event -> {
-    System.out.println("新增好友：" + event.data());
-});
+```yaml
+astra:
+  history:
+    enabled: false
+  event-archive:
+    enabled: true
+    retention-days: 30 # 0 表示长期保留
 ```
 
-指定类型监听器会优先安排，全局原始事件监听器随后安排。回调可能并发运行，请勿依赖它们的开始或完成顺序。
-
-## 标准化消息事件
-
-`onMessage` 目前接收以下事件：
-
-- `C2C_MESSAGE_CREATE`
-- `GROUP_AT_MESSAGE_CREATE`
-- `GROUP_MESSAGE_CREATE`
-- `AT_MESSAGE_CREATE`
-- `MESSAGE_CREATE`
-- `DIRECT_MESSAGE_CREATE`
+归档默认关闭，与消息历史的开关和保留期分别设置。开启任意一项都不会自动开启另一项。
 
 ```java
-plugin.onMessage(message -> {
-    if (message.isGroupMessage()) {
-        System.out.println("群 " + message.groupOpenId());
-    } else {
-        System.out.println("用户 " + message.userOpenId());
-    }
-    System.out.println(message.content());
-});
+if (context.eventArchive().enabled()) {
+    var page = context.eventArchive().search(new EventArchive.Query(
+        context.bot(), Set.of("GROUP_JOIN_REQUEST", "INTERACTION_CREATE"),
+        Instant.now().minusSeconds(3600), null, 0, 20));
+}
 ```
 
-`QQMessageEvent` 的主要字段：
+记录包含 `receiptId`、机器人、接入方式、事件类型、opcode、序号、平台事件 ID、接收时间、原样完整报文字符串和类型化事件。类型集合为空时不限事件类型。关闭归档时，查询抛出 `EventArchiveDisabledException`。
 
-| 字段 | 说明 |
-| --- | --- |
-| `eventId()` | 外层事件 ID |
-| `eventType()` | 消息事件类型 |
-| `messageId()` | 可用于被动回复的消息 ID |
-| `author()` | 标准化的 `QQUser` |
-| `content()` | 文本内容；非文本消息可能为空 |
-| `userOpenId()` | 单聊用户 OpenID |
-| `groupOpenId()` | 群 OpenID |
-| `guildId()` | 频道 ID；频道私信事件中为私信会话 Guild ID |
-| `channelId()` | 文字子频道 ID |
-| `sequence()` | 频道消息顺序号 |
-| `member()` | 频道成员原始 JSON |
-| `messageType()` | 官方消息类型整数 |
-| `timestamp()` | 尝试解析后的 `Instant`，格式异常时为空 |
-| `scene()` | 消息场景和扩展项 |
-| `attachments()` | 图片、文件、语音等附件元数据 |
-| `raw()` | 完整原始 JSON |
+## 保存与清理规则
 
-场景判断可使用 `isPrivateMessage()`、`isGroupMessage()`、`isChannelMessage()` 和 `isDirectMessage()`。`replyText` 会根据场景自动调用正确的发送端点。
+归档在接收校验通过后、业务入队前写入。同一推送重复到达时，各次接收分别保存，业务去重仍按原规则执行。开启归档后，写入失败的业务事件不会得到接收确认。
 
-## 场景扩展
+WebSocket 保存完整文本包，包括 HELLO、心跳确认、重连、Invalid Session、READY 和 RESUMED。Webhook 在签名有效后保存，挑战验证包也会归档；无效签名的报文不保存。
 
-官方 `message_scene.ext` 使用 `key=value` 字符串。可通过辅助方法读取：
-
-```java
-String messageIndex = message.scene().extension("msg_idx");
-String authToken = message.scene().extension("auth_token");
-```
-
-## 去重和幂等
-
-平台可能重复投递相同消息。应用必须自行去重，可将稳定键写入 Redis、数据库或本地缓存，并设置合理的过期时间。
-
-对当前消息结构，至少考虑：
-
-- `messageId()`；
-- `scene().extension("msg_idx")`；
-- 必要时组合 `eventType()` 和目标 OpenID。
-
-同一插件的普通监听器可能并发运行。共享状态需要保证线程安全，业务写操作需要使用事件 ID 或消息 ID 保证幂等。监听器异常和容量不足会通过 Bot 错误通道报告，可使用 `onError` 统一处理。
-
-## 扩展事件模型
-
-除消息事件外，框架还提供以下标准化监听器：
-
-```java
-plugin.onInteraction(event -> event.respond(0));
-plugin.onRelationship(event -> System.out.println(event.eventType()));
-plugin.onMessageStatus(event -> System.out.println(event.status()));
-plugin.onResource(event -> System.out.println(event.resourceId()));
-```
-
-| 监听器 | 模型 | 覆盖范围 |
-| --- | --- | --- |
-| `onInteraction` | `QQInteractionEvent` | `INTERACTION_CREATE`、Reaction 增删 |
-| `onRelationship` | `QQRelationshipEvent` | 好友、群成员、机器人进退群、消息接收/拒绝状态 |
-| `onMessageStatus` | `QQMessageStatusEvent` | 订阅消息状态和消息审核状态 |
-| `onResource` | `QQResourceEvent` | Guild、Channel、成员、论坛和音频资源事件 |
-
-标准化模型同时提供 `data()` 和 `raw()`。官方增加字段后，可以先从原始 JSON 中读取。
+有效报文解析失败时，归档保留原文和通用事件，该报文不算成功入队。未知事件同样保留原始字段。记录默认按接收时间保留 30 天，`retention-days: 0` 表示长期保留，清理周期见 [数据库升级与清理](architecture.md#数据库升级与清理)。

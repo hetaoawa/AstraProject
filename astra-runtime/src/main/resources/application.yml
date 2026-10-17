@@ -1,0 +1,40 @@
+server:
+  port: 8080
+  shutdown: graceful
+spring:
+  application:
+    name: astra
+  threads:
+    virtual:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+management:
+  server:
+    port: 8081
+    address: 127.0.0.1
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+astra:
+  database:
+    dialect: sqlite
+    url: jdbc:sqlite:data/astra-v1.db
+  history:
+    enabled: false
+    retention-days: 30
+  event-archive:
+    enabled: false
+    retention-days: 30
+  redis:
+    enabled: true
+    uri: redis://localhost:6379/0
+    namespace: astra:v1
+  plugins:
+    directory: plugins
+    enabled-by-default: true
+  bots: []

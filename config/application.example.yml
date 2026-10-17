@@ -1,0 +1,69 @@
+server:
+  port: 8080
+management:
+  server:
+    port: 8081
+    address: 127.0.0.1
+
+astra:
+  database:
+    dialect: sqlite
+    url: jdbc:sqlite:data/astra-v1.db
+    username: ""
+    password: ""
+    # PostgreSQL: dialect: postgresql
+    # url: jdbc:postgresql://127.0.0.1:5432/astra_v1
+    # MySQL: dialect: mysql
+    # url: jdbc:mysql://127.0.0.1:3306/astra_v1
+  lock-file: data/astra-v1.lock
+  redis:
+    enabled: false
+    uri: ${ASTRA_REDIS_URI:redis://localhost:6379/0}
+    namespace: astra:v1
+  history:
+    enabled: false
+    retention-days: 30 # 0 = 长期保留
+  event-archive:
+    enabled: false # 独立保存通过接收校验的完整平台报文，包括非消息事件
+    retention-days: 30 # 0 = 长期保留，与聊天历史独立
+  console: true
+  plugins:
+    directory: plugins
+    enabled-by-default: true
+    configuration:
+      astra-example: {}
+  bots:
+    - app-id: ${QQ_APP_ID}
+      environment: production
+      secret: ${QQ_BOT_SECRET}
+      transport: WEBHOOK # 或 WEBSOCKET；同一 bot 环境选择一种
+      api-base: https://api.bot.qq.com
+      concurrency: 8
+      queue-capacity: 10000
+      outbound-capacity: 1000
+      rate-limits:
+        certification: UNVERIFIED # PERSONAL / ENTERPRISE 按后台认证状态设置
+        concurrency: 8 # 仅限制在途 HTTP，不占用等待配额的任务
+        day-zone: Asia/Shanghai
+        cooldown: 1s # 平台未给出 Retry-After 时的短期避让，不重发失败请求
+        budgets: [] # 后台额外分配的额度；接口自带规则始终同时生效
+        # budgets:
+        #   - id: allocated-global-qps
+        #     operation: "*" # OpenAPI + 凭证获取，不含预签名 COS PUT
+        #     scope: BOT
+        #     limit: 100 # 示例值，必须替换为平台实际分配额度
+        #     window: 1s
+        #   - id: allocated-global-daily
+        #     operation: "*"
+        #     scope: BOT
+        #     limit: 10000 # 示例值，必须替换为平台实际分配额度
+        #     daily: true
+      request-timeout: 30s
+      signature-tolerance: 5m
+      intents: 33554435
+      shards: 1
+      union-enabled: false
+      union-scope: ""
+    # 可继续增加不同 AppID，或相同 AppID 的不同环境。
+    # union-enabled: true 时必须填写明确的 union-scope。
+    # 互通 bot 必须同属一个 scope，并已经向平台申请互通能力。

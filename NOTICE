@@ -1,0 +1,14 @@
+Astra Framework
+Copyright (c) 2026 Astra contributors.
+
+Project-owned code is available under the Eclipse Public License 2.0
+(SPDX-License-Identifier: EPL-2.0). See LICENSE for the complete terms.
+No Secondary Licenses are designated for this project.
+
+Source code, including release tags corresponding to distributed versions:
+https://github.com/hetaoawa/AstraProject
+
+Third-party components retain their own licenses and notices. In particular,
+the Apache Maven Wrapper scripts retain their Apache License 2.0 headers.
+The project license does not replace licenses supplied by dependencies or
+independently authored plugins.

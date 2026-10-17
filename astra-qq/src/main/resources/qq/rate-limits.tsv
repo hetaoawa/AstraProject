@@ -1,0 +1,94 @@
+# operation	count	windowMillis	burst	evidence
+channels_channel_id.delete	50	1000	0	接口频率限制 50 QPS
+channels_channel_id.get	50	1000	0	接口频率限制 50 QPS
+channels_channel_id.patch	50	1000	0	接口频率限制 50 QPS
+gateway.get	2	60000	10	接口频率限制 2 QPM / 10 QPM burst
+guilds_guild_id_channels.get	50	1000	0	接口频率限制 50 QPS
+guilds_guild_id.get	50	1000	0	接口频率限制 50 QPS
+users_me.get	50	1000	0	接口频率限制 50 QPS
+interactions_interaction_id.put	50	1000	0	接口频率限制 50 QPS
+users_me_guilds.get	50	1000	0	接口频率限制 50 QPS
+v2_generate_url_link.post	50	1000	0	接口频率限制 50 QPS
+guilds_guild_id_channels.post	50	1000	0	接口频率限制 50 QPS
+v2_groups_group_id_upload_part_finish.post	10	1000	0	接口频率限制 10 QPS
+v2_groups_group_id_upload_prepare.post	10	1000	0	接口频率限制 10 QPS
+v2_groups_group_openid_approval_join_request_member_openid.post	60	60000	0	接口频率限制 60 QPM
+v2_groups_group_openid_batch_remove_members.post	30	60000	0	接口频率限制 30 QPM
+v2_groups_group_openid_bot_state.get	30	60000	0	接口频率限制 30 QPM
+v2_groups_group_openid_files.post	50	1000	0	接口频率限制 50 QPS
+v2_groups_group_openid_info.get	30	60000	0	接口频率限制 30 QPM
+v2_groups_group_openid_join_request_list.get	30	60000	0	接口频率限制 30 QPM
+v2_groups_group_openid_member_blacklist.post	60	60000	0	接口频率限制 60 QPM
+v2_groups_group_openid_member_blacklist.get	30	60000	0	接口频率限制 30 QPM
+v2_groups_group_openid_members.get	60	60000	0	接口频率限制 60 QPM
+v2_groups_group_openid_messages.post	100	1000	0	接口频率限制 100 QPS
+v2_groups_group_openid_members_member_openid.get	30	60000	0	接口频率限制 30 QPM
+v2_groups_group_openid_messages_message_id.delete	10	1000	0	接口频率限制 10 QPS
+v2_groups_group_openid_restrict_chat_setting.post	60	60000	0	接口频率限制 60 QPM
+v2_groups_join_approval_strategy.get	60	60000	0	接口频率限制 60 QPM
+v2_groups_join_approval_strategy.post	60	60000	0	接口频率限制 60 QPM
+v2_groups_group_openid_restrict_chat_setting.get	30	60000	0	接口频率限制 30 QPM
+v2_groups_join_approval_strategy_strategy_id.delete	60	60000	0	接口频率限制 60 QPM
+v2_groups_join_approval_strategy_strategy_id.patch	60	60000	0	接口频率限制 60 QPM
+v2_groups_join_approval_strategy_strategy_id_execute.post	60	60000	0	接口频率限制 60 QPM
+v2_groups_join_approval_strategy_strategy_id_whitelist_users.post	60	60000	0	接口频率限制 60 QPM
+v2_menu.get	30	60000	0	接口频率限制 30 QPM
+v2_menu.put	5	60000	0	接口频率限制 5 QPM
+v2_panels.get	30	60000	0	接口频率限制 30 QPM
+v2_panels_panel_id.delete	10	60000	0	接口频率限制 10 QPM
+v2_panels_panel_id.get	30	60000	0	接口频率限制 30 QPM
+v2_panels.post	10	60000	0	接口频率限制 10 QPM
+v2_users_user_id_upload_prepare.post	10	1000	0	接口频率限制 10 QPS
+v2_panels_panel_id.put	10	60000	0	接口频率限制 10 QPM
+v2_users_user_id_upload_part_finish.post	10	1000	0	接口频率限制 10 QPS
+v2_users_user_openid_files.post	50	1000	0	接口频率限制 50 QPS
+v2_panels_panel_id_target.put	60	60000	0	接口频率限制 60 QPM
+v2_users_user_openid_messages_message_id.delete	10	1000	0	接口频率限制 10 QPS
+v2_users_user_openid_messages.post	100	1000	0	接口频率限制 100 QPS
+v2_users_user_openid_stream_messages.post	50	1000	0	接口频率限制 50 QPS
+get_guild_api_permission	0	0	0	UNPUBLISHED
+delete_guild_announces	0	0	0	UNPUBLISHED
+post_api_permission_demand	0	0	0	UNPUBLISHED
+audio_control	0	0	0	UNPUBLISHED
+delete_mic	0	0	0	UNPUBLISHED
+delete_thread	0	0	0	UNPUBLISHED
+post_guild_announces	0	0	0	UNPUBLISHED
+put_mic	0	0	0	UNPUBLISHED
+get_threads_list	0	0	0	UNPUBLISHED
+get_thread	0	0	0	UNPUBLISHED
+put_thread	0	0	0	UNPUBLISHED
+get_pins_message	0	0	0	UNPUBLISHED
+delete_pins_message	0	0	0	UNPUBLISHED
+delete_schedule	0	0	0	UNPUBLISHED
+put_pins_message	0	0	0	UNPUBLISHED
+get_schedule	0	0	0	UNPUBLISHED
+get_schedules	0	0	0	UNPUBLISHED
+patch_schedule	0	0	0	UNPUBLISHED
+post_schedule	0	0	0	UNPUBLISHED
+dms.delete.dms_guild_id_messages_message_id	0	0	0	UNPUBLISHED
+dms.post.dms_guild_id_messages	0	0	0	UNPUBLISHED
+recall	0	0	0	UNPUBLISHED
+send	0	0	0	UNPUBLISHED
+get_channel_roles_permissions	0	0	0	UNPUBLISHED
+get_channel_permissions	0	0	0	UNPUBLISHED
+put_channel_roles_permissions	0	0	0	UNPUBLISHED
+put_channel_permissions	0	0	0	UNPUBLISHED
+get_guild_roles	0	0	0	UNPUBLISHED
+delete_guild_member_role	0	0	0	UNPUBLISHED
+post_guild_role	0	0	0	UNPUBLISHED
+delete_guild_role	0	0	0	UNPUBLISHED
+patch_guild_role	0	0	0	UNPUBLISHED
+put_guild_member_role	0	0	0	UNPUBLISHED
+get_online_nums	0	0	0	UNPUBLISHED
+get_member	0	0	0	UNPUBLISHED
+get_members	0	0	0	UNPUBLISHED
+delete_member	0	0	0	UNPUBLISHED
+get_role_members	0	0	0	UNPUBLISHED
+patch_guild_member_mute	0	0	0	UNPUBLISHED
+patch_guild_mute_multi_member	0	0	0	UNPUBLISHED
+message_setting	0	0	0	UNPUBLISHED
+patch_guild_mute	0	0	0	UNPUBLISHED
+gateway_bot.get	0	0	0	UNPUBLISHED
+channel_reactions.put	0	0	0	UNPUBLISHED
+channel_reactions.delete	0	0	0	UNPUBLISHED
+channel_reactions.get	0	0	0	UNPUBLISHED

@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS astra_schema_version(version INTEGER NOT NULL PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS astra_profiles(identity_key VARCHAR(1024) PRIMARY KEY,bot_key VARCHAR(256) NOT NULL,entity_type VARCHAR(32) NOT NULL,identity_json TEXT NOT NULL,fields_json TEXT NOT NULL,display_name VARCHAR(512) NOT NULL,source VARCHAR(128) NOT NULL,first_seen BIGINT NOT NULL,last_seen BIGINT NOT NULL,complete_flag INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS astra_members(relation_key VARCHAR(1024) PRIMARY KEY,chat_key VARCHAR(1024) NOT NULL,member_key VARCHAR(1024) NOT NULL,active_flag INTEGER NOT NULL,last_seen BIGINT NOT NULL,fields_json TEXT NOT NULL,source VARCHAR(256) NOT NULL,chat_json TEXT NOT NULL,member_json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS astra_union_links(identity_key VARCHAR(1024) PRIMARY KEY,scope_name VARCHAR(256) NOT NULL,entity_type VARCHAR(32) NOT NULL,union_id VARCHAR(256) NOT NULL);
+CREATE TABLE IF NOT EXISTS astra_metadata(plugin_id VARCHAR(128) NOT NULL,identity_key VARCHAR(1024) NOT NULL,fields_json TEXT NOT NULL,PRIMARY KEY(plugin_id,identity_key));
+CREATE TABLE IF NOT EXISTS astra_events(event_key VARCHAR(1024) PRIMARY KEY,chat_key VARCHAR(1024) NOT NULL,state VARCHAR(32) NOT NULL,created_at BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS astra_handlers(event_key VARCHAR(1024) NOT NULL,handler_key VARCHAR(1024) NOT NULL,plugin_id VARCHAR(128) NOT NULL,position INTEGER NOT NULL,state VARCHAR(32) NOT NULL,error_text TEXT NOT NULL,PRIMARY KEY(event_key,handler_key));
+CREATE TABLE IF NOT EXISTS astra_history(record_key VARCHAR(1024) PRIMARY KEY,event_key VARCHAR(1024) NOT NULL,bot_key VARCHAR(256) NOT NULL,chat_key VARCHAR(1024) NOT NULL,chat_json TEXT NOT NULL,actor_key VARCHAR(1024),actor_json TEXT,message_id VARCHAR(512) NOT NULL,message_index VARCHAR(512) NOT NULL,message_json TEXT NOT NULL,occurred_at BIGINT NOT NULL,outgoing_flag INTEGER NOT NULL,recalled_flag INTEGER NOT NULL,recalled_at BIGINT,processing_state VARCHAR(32) NOT NULL);
+CREATE TABLE IF NOT EXISTS astra_plugin_state(plugin_id VARCHAR(128) NOT NULL,bot_key VARCHAR(256) NOT NULL,enabled_flag INTEGER NOT NULL,PRIMARY KEY(plugin_id,bot_key));
+CREATE INDEX IF NOT EXISTS astra_profile_scope ON astra_profiles(bot_key,entity_type);
+CREATE INDEX IF NOT EXISTS astra_member_chat ON astra_members(chat_key);
+CREATE INDEX IF NOT EXISTS astra_union_scope ON astra_union_links(scope_name,entity_type,union_id);
+CREATE INDEX IF NOT EXISTS astra_history_chat ON astra_history(chat_key,occurred_at);
+CREATE INDEX IF NOT EXISTS astra_history_event ON astra_history(event_key);
+CREATE INDEX IF NOT EXISTS astra_events_age ON astra_events(created_at);
+CREATE TABLE IF NOT EXISTS astra_outbound(job_id VARCHAR(128) PRIMARY KEY,bot_key VARCHAR(128) NOT NULL,plugin_id VARCHAR(128) NOT NULL,state VARCHAR(32) NOT NULL,result_json TEXT NOT NULL,created_at BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS astra_reply_sequences(reply_key VARCHAR(128) PRIMARY KEY,next_seq INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS astra_gateway(gateway_key VARCHAR(128) PRIMARY KEY,session_id VARCHAR(256) NOT NULL,accepted_seq BIGINT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS astra_runtime_lock(lock_id INTEGER PRIMARY KEY,owner_id VARCHAR(64) NOT NULL,expires_at BIGINT NOT NULL);

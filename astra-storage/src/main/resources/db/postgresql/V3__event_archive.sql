@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS astra_event_archive(receipt_id VARCHAR(128) PRIMARY KEY,bot_key VARCHAR(128) NOT NULL,bot_json TEXT NOT NULL,transport VARCHAR(32) NOT NULL,event_type VARCHAR(128) NOT NULL,opcode INTEGER NOT NULL,sequence_number BIGINT,platform_event_id TEXT NOT NULL,received_at BIGINT NOT NULL,raw_packet TEXT NOT NULL,event_json TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS astra_archive_bot ON astra_event_archive(bot_key,received_at);
