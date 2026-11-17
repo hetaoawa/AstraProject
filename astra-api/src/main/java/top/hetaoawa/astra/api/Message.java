@@ -24,6 +24,11 @@ public record Message(
   public String displayText() {
     if (content != null && content.reference() != null) return content.reference().displayText();
     if (content != null && content.merged() != null) return content.merged().displayText();
+    if (content != null && content.parallel() != null && !content.parallel().msgNodes().isEmpty())
+      return content.parallel().msgNodes().stream()
+              .map(MessageContent.Element::displayText)
+              .collect(java.util.stream.Collectors.joining("\n"))
+          + (text.isBlank() ? "" : "\n" + text);
     return text;
   }
 

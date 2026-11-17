@@ -124,4 +124,10 @@ public final class QqEndpoints {
   public static final String CHANNEL_REACTIONS_PUT = "channel_reactions.put";
   public static final String CHANNEL_REACTIONS_DELETE = "channel_reactions.delete";
   public static final String CHANNEL_REACTIONS_GET = "channel_reactions.get";
+  public static final String V2_MEDIA_IMAGES_PREPARE_POST = "v2_media_images_prepare.post";
+  public static final String V2_MEDIA_IMAGES_COMPLETE_POST = "v2_media_images_complete.post";
+  public static final String V2_MEDIA_IMAGES_GET = "v2_media_images.get";
+  public static final String V2_USERS_USER_OPENID_INFO_GET = "v2_users_user_openid_info.get";
+  public static final String V2_MEDIA_IMAGES_IMAGE_ID_DELETE_DELETE =
+      "v2_media_images_image_id_delete.delete";
 }

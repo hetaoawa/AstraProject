@@ -15,7 +15,7 @@ if (-not (Get-Command java -ErrorAction SilentlyContinue)) { throw 'Install Java
 if (-not (Get-Command jar -ErrorAction SilentlyContinue)) { throw 'Java 21 JDK (including jar) is required.' }
 if ($Repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') { throw 'Invalid GitHub repository.' }
 if (-not $Version) {
-    $Version = Read-Host 'Framework version (for example 0.1.0; Enter = latest stable release)'
+    $Version = Read-Host 'Framework version (for example 0.1.1; Enter = latest stable release)'
     if (-not $Version) { $Version = 'latest' }
 }
 $Version = $Version -replace '^(framework-)?v', ''

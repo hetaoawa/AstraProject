@@ -56,10 +56,24 @@ public final class Moderation {
     }
   }
 
-  public record RemoveMembers(List<String> memberOpenids, boolean addToMemberBlacklist)
-      implements RequestPayload {
+  public record RemoveMembers(List<String> memberOpenids) implements RequestPayload {
     public RemoveMembers {
       memberOpenids = ids(memberOpenids);
+    }
+
+    /** The platform removed the blacklist option from the batch-removal endpoint. */
+    @Deprecated
+    public RemoveMembers(List<String> memberOpenids, boolean addToMemberBlacklist) {
+      this(memberOpenids);
+      if (addToMemberBlacklist)
+        throw new IllegalArgumentException(
+            "Batch removal no longer supports blacklisting; use kickAndBlacklist or blacklist"
+                + " separately");
+    }
+
+    @Deprecated
+    public boolean addToMemberBlacklist() {
+      return false;
     }
   }
 
@@ -108,7 +122,29 @@ public final class Moderation {
   public record RemoveResult(
       String removeMembersResult,
       List<String> addToMemberBlacklistFailOpenids,
-      ApiResponse response) {}
+      ApiResponse response,
+      ApiResponse blacklistResponse) {
+    public RemoveResult(
+        String removeMembersResult,
+        List<String> addToMemberBlacklistFailOpenids,
+        ApiResponse response) {
+      this(removeMembersResult, addToMemberBlacklistFailOpenids, response, null);
+    }
+  }
+
+  /** Removal succeeded, but the separate blacklist request failed. No request was retried. */
+  public static final class BlacklistAfterRemovalException extends RuntimeException {
+    private final RemoveResult removal;
+
+    public BlacklistAfterRemovalException(RemoveResult removal, Throwable cause) {
+      super("Members were removed, but the separate blacklist request failed", unwrap(cause));
+      this.removal = removal;
+    }
+
+    public RemoveResult removal() {
+      return removal;
+    }
+  }
 
   public record BlacklistResult(List<String> failOpenids, ApiResponse response) {}
 
@@ -125,19 +161,44 @@ public final class Moderation {
             Map.of("group_openid", id(group)),
             request)
         .thenApply(
-            r ->
-                new RemoveResult(
-                    string(r.data().get("remove_members_result")),
-                    strings(r.data().get("add_to_member_blacklist_fail_openids")),
-                    r));
+            r -> new RemoveResult(string(r.data().get("remove_members_result")), List.of(), r));
   }
 
   public CompletionStage<RemoveResult> kick(String group, List<String> members) {
-    return removeMembers(group, new RemoveMembers(members, false));
+    return removeMembers(group, new RemoveMembers(members));
   }
 
+  /**
+   * Removes members, then calls the separate blacklist endpoint. Blacklist request failures retain
+   * the completed removal in BlacklistAfterRemovalException; per-member failures remain in the
+   * result.
+   */
   public CompletionStage<RemoveResult> kickAndBlacklist(String group, List<String> members) {
-    return removeMembers(group, new RemoveMembers(members, true));
+    var request = new RemoveMembers(members);
+    return removeMembers(group, request)
+        .thenCompose(
+            removal -> {
+              if (!"success".equals(removal.removeMembersResult()))
+                return java.util.concurrent.CompletableFuture.completedFuture(removal);
+              try {
+                return blacklist(
+                        group, new Blacklist(BlacklistOperation.ADD, request.memberOpenids()))
+                    .handle(
+                        (result, error) -> {
+                          if (error != null)
+                            throw new java.util.concurrent.CompletionException(
+                                new BlacklistAfterRemovalException(removal, error));
+                          return new RemoveResult(
+                              removal.removeMembersResult(),
+                              result.failOpenids(),
+                              removal.response(),
+                              result.response());
+                        });
+              } catch (RuntimeException error) {
+                return java.util.concurrent.CompletableFuture.failedFuture(
+                    new BlacklistAfterRemovalException(removal, error));
+              }
+            });
   }
 
   public CompletionStage<BlacklistResult> blacklist(String group, Blacklist request) {
@@ -191,6 +252,13 @@ public final class Moderation {
 
   private static String string(Object value) {
     return value == null ? null : value.toString();
+  }
+
+  private static Throwable unwrap(Throwable error) {
+    while ((error instanceof java.util.concurrent.CompletionException
+            || error instanceof java.util.concurrent.ExecutionException)
+        && error.getCause() != null) error = error.getCause();
+    return error;
   }
 
   private static List<String> strings(Object value) {

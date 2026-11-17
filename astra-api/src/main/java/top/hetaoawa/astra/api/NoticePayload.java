@@ -52,8 +52,23 @@ public sealed interface NoticePayload {
       implements NoticePayload {}
 
   record GroupBotState(
-      Long timestamp, String groupOpenid, String opMemberOpenid, Map<String, Object> raw)
-      implements NoticePayload {}
+      Long timestamp,
+      String groupOpenid,
+      String opMemberOpenid,
+      String unionGroupOpenid,
+      Map<String, Object> raw)
+      implements NoticePayload {
+    public GroupBotState {
+      if (unionGroupOpenid == null
+          && raw != null
+          && raw.get("union_group_openid") instanceof String value) unionGroupOpenid = value;
+    }
+
+    public GroupBotState(
+        Long timestamp, String groupOpenid, String opMemberOpenid, Map<String, Object> raw) {
+      this(timestamp, groupOpenid, opMemberOpenid, null, raw);
+    }
+  }
 
   record Interaction(
       String id,

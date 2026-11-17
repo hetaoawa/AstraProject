@@ -313,6 +313,8 @@ public final class OutboundLimits {
             r.operation().equals("v2_groups_group_openid_messages.post")
                 || (autoSend && r.operation().equals("v2_groups_group_openid_files.post"));
     if ((c2c || group) && (!stream || QqJson.string(body.get("stream_msg_id")).isBlank())) {
+      if (group && mentionsEveryone(body))
+        daily(q, "group:at-everyone:daily", r.target(), 1, reset, null);
       if (c2c && Boolean.parseBoolean(String.valueOf(body.get("is_wakeup")))) {
         var interaction = store.load(key("interaction", r.target()), now);
         if (interaction == null)
@@ -559,6 +561,18 @@ public final class OutboundLimits {
             m.data().actor().value(),
             now + Duration.ofDays(30).toMillis());
     }
+  }
+
+  private static boolean mentionsEveryone(Object value) {
+    if (value instanceof String text)
+      return Pattern.compile("<qqbot-at-everyone\\s*/>").matcher(text).find();
+    if (value instanceof Map<?, ?> fields)
+      return fields.entrySet().stream()
+          .filter(e -> Set.of("content", "markdown", "params", "values").contains(e.getKey()))
+          .anyMatch(e -> mentionsEveryone(e.getValue()));
+    if (value instanceof List<?> list)
+      return list.stream().anyMatch(OutboundLimits::mentionsEveryone);
+    return false;
   }
 
   public synchronized void feedback(

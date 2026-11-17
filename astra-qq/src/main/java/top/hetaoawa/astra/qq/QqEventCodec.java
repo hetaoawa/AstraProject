@@ -291,7 +291,10 @@ public final class QqEventCodec implements EventCodec {
         String value = QqJson.string(entry);
         if (value.startsWith("msg_idx=")) return value.substring(8);
       }
-    return first(QqJson.object(body.get("ext_info")).get("ref_idx"), body.get("msg_seq"));
+    return first(
+        body.get("msg_idx"),
+        QqJson.object(body.get("ext_info")).get("ref_idx"),
+        body.get("msg_seq"));
   }
 
   private static String first(Object... values) {

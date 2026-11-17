@@ -143,6 +143,18 @@ public final class OutboundQueue implements AutoCloseable {
     };
   }
 
+  /** Collect before dispatch so messages without a matching plugin handler remain usable. */
+  public void observe(Event event) {
+    if (!(event instanceof MessageEvent message)) return;
+    if (!apis.containsKey(message.data().bot())) return;
+    var scene = message.chat().scene();
+    if (scene != Scene.GROUP && scene != Scene.C2C) return;
+    long deadline =
+        message.data().occurredAt().plusSeconds(scene == Scene.C2C ? 3600 : 300).toEpochMilli();
+    store.rememberReply(
+        message.chat().key(), message.message().id(), deadline, scene == Scene.C2C ? 4 : 5);
+  }
+
   public CompletionStage<ApiResponse> submit(
       String owner,
       BotId bot,

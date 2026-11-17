@@ -41,7 +41,7 @@ public final class JdbcDatabase implements AutoCloseable {
     jdbc.execute(
         "CREATE TABLE IF NOT EXISTS astra_schema_version(version INTEGER NOT NULL PRIMARY KEY)");
     var v = jdbc.query("SELECT version FROM astra_schema_version", (rs, n) -> rs.getInt(1));
-    if (v.size() > 1 || !v.isEmpty() && (v.getFirst() < 1 || v.getFirst() > 4))
+    if (v.size() > 1 || !v.isEmpty() && (v.getFirst() < 1 || v.getFirst() > 5))
       throw new IllegalStateException("Unsupported Astra schema version");
     int current = v.isEmpty() ? 0 : v.getFirst();
     if (current == 0) {
@@ -94,6 +94,11 @@ public final class JdbcDatabase implements AutoCloseable {
     if (current == 3) {
       script("V4__outbound_quotas.sql");
       jdbc.update("UPDATE astra_schema_version SET version=4 WHERE version=3");
+      current = 4;
+    }
+    if (current == 4) {
+      script("V5__passive_reply_contexts.sql");
+      jdbc.update("UPDATE astra_schema_version SET version=5 WHERE version=4");
     }
   }
 

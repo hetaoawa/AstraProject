@@ -48,6 +48,7 @@ final class QqMemberEvents {
         operator(bot, scene, raw),
         string(raw, "join_request_id"),
         verification(raw.get("verify_info")),
+        string(raw, "union_group_openid"),
         raw);
   }
 

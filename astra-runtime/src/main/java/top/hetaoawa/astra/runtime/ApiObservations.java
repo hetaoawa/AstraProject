@@ -28,6 +28,17 @@ final class ApiObservations implements OutboundQueue.Observer {
 
   public void after(OutboundQueue.Job job, ApiResponse response, Throwable error) {
     if (error != null) {
+      // DirectQqApi preserves err_code in preference to the outer code (11255).
+      if (error instanceof PlatformException platform && "40011028".equals(platform.code())) {
+        String[] path = job.path().split("/");
+        if (path.length >= 5 && path[1].equals("v2") && path[2].equals("groups"))
+          directory.dissolveGroup(
+              new Identity(
+                  job.bot(),
+                  EntityType.GROUP,
+                  "group_openid",
+                  URLDecoder.decode(path[3], StandardCharsets.UTF_8)));
+      }
       String state =
           error instanceof PlatformException p && !p.outcomeKnown() ? "OUTCOME_UNKNOWN" : "FAILED";
       history.status(Keys.join("outbound", job.id()), state);
@@ -189,6 +200,18 @@ final class ApiObservations implements OutboundQueue.Observer {
             true);
     }
     if (!job.method().equals("GET")) return;
+    if (path.length == 5
+        && path[1].equals("v2")
+        && path[2].equals("users")
+        && path[4].equals("info"))
+      directory.upsert(
+          new Identity(job.bot(), EntityType.USER, "user_openid", path[3]),
+          data,
+          "API:" + job.path(),
+          now,
+          QqJson.string(data.get("union_openid")),
+          null,
+          true);
     if (job.path().equals("/users/@me")) {
       String user = QqJson.string(data.get("id"));
       if (!user.isBlank())
@@ -203,15 +226,19 @@ final class ApiObservations implements OutboundQueue.Observer {
     }
     if (path.length >= 5 && path[1].equals("v2") && path[2].equals("groups")) {
       var chat = new ChatRef(job.bot(), Scene.GROUP, path[3], "");
-      if (path[4].equals("info"))
+      if (path.length == 5 && path[4].equals("info")) {
+        var fields = new LinkedHashMap<>(data);
+        fields.put("name", data.get("group_name"));
+        fields.put("group_info_updated_at", now.toEpochMilli());
         directory.upsert(
             new Identity(job.bot(), EntityType.GROUP, "group_openid", path[3]),
-            data,
+            fields,
             "API:" + job.path(),
             now,
             QqJson.string(data.get("union_group_openid")),
             null,
             true);
+      }
       if (path[4].equals("members")) {
         if (path.length == 6) member(job.bot(), chat, "member_openid", data, path[5], now);
         else

@@ -1,5 +1,42 @@
 [
     {
+        "operation": "v2_users_user_openid_info.get",
+        "method": "GET", "path": "/v2/users/{user_openid}/info",
+        "request": {},
+        "response": {"username":"示例用户","avatar":"https://example.com/avatar","union_openid":"union-example","allow_proactive_msg":false},
+        "requestSampleFound": true,
+        "reference": "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_info.get.html"
+    },
+    {
+        "operation": "v2_media_images_prepare.post",
+        "method": "POST", "path": "/v2/media-images/prepare",
+        "request": {"file_name":"test.png","file_size":40156,"content_type":"image/png","md5":"e10adc3949ba59abbe56e057f20f883e","sha1":"d5c5d9b5b3d5d9e0a1b2c3d4e5f60718293a4b5c"},
+        "response": {"upload_id":"upload-test","presigned_url":"https://example.com/image","expires_in":3600},
+        "requestSampleFound": true,
+        "reference": "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html"
+    },
+    {
+        "operation": "v2_media_images_complete.post",
+        "method": "POST", "path": "/v2/media-images/complete",
+        "request": {"upload_id":"upload-test","md5":"e10adc3949ba59abbe56e057f20f883e"},
+        "response": {"image_id":"image-test","url":"qqbot-media://image/v1/test","ttl":7776000,"preview_url":"https://example.com/preview"},
+        "requestSampleFound": true,
+        "reference": "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html"
+    },
+    {
+        "operation": "v2_media_images.get",
+        "method": "GET", "path": "/v2/media-images",
+        "request": {}, "response": {"images":[],"next_cursor":"","total":0},
+        "requestSampleFound": true,
+        "reference": "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html"
+    },
+    {
+        "operation": "v2_media_images_image_id_delete.delete",
+        "method": "DELETE", "path": "/v2/media-images/{image_id}/delete",
+        "request": {}, "response": {}, "requestSampleFound": true,
+        "reference": "https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html"
+    },
+    {
         "operation":  "channels_channel_id.delete",
         "method":  "DELETE",
         "path":  "/channels/{channel_id}",
@@ -276,10 +313,7 @@
                                            ]
                     },
         "response":  {
-                         "remove_members_result":  "success",
-                         "add_to_member_blacklist_fail_openids":  [
-
-                                                                  ]
+                         "remove_members_result":  "success"
                      },
         "requestSampleFound":  true,
         "reference":  "https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_batch_remove_members.post.html"

@@ -54,15 +54,19 @@ public final class QqMessageParser {
             MessageIndex.observed(idx, eventKey),
             MessageIndex.observed(ref, eventKey),
             extValue(ext, "auth_token")),
-        raw.get("parallel_message") instanceof Map<?, ?>
+        raw.get("parallel_message") instanceof Map<?, ?> || Objects.equals(type, 101)
             ? new MessageContent.Parallel(
-                elements(
-                    bot,
-                    scene,
-                    QqJson.object(raw.get("parallel_message")).get("msg_nodes"),
-                    eventKey,
-                    0),
-                QqJson.object(raw.get("parallel_message")))
+                raw.get("parallel_message") instanceof Map<?, ?>
+                    ? elements(
+                        bot,
+                        scene,
+                        QqJson.object(raw.get("parallel_message")).get("msg_nodes"),
+                        eventKey,
+                        0)
+                    : elements,
+                raw.get("parallel_message") instanceof Map<?, ?>
+                    ? QqJson.object(raw.get("parallel_message"))
+                    : raw)
             : null,
         QqTypedData.read(MessageContent.Metadata.class, raw),
         raw.get("embeds") instanceof List<?> list
@@ -84,9 +88,11 @@ public final class QqMessageParser {
             : scene == Scene.C2C ? "user_openid" : "guild_user_id";
     String id =
         QqJson.string(
-            user.getOrDefault(
-                scene == Scene.GROUP ? "member_openid" : scene == Scene.C2C ? "user_openid" : "id",
-                user.get("id")));
+            user.get(
+                scene == Scene.GROUP
+                    ? "member_openid"
+                    : scene == Scene.C2C ? "user_openid" : "id"));
+    if (id.isBlank()) id = QqJson.string(user.get("id"));
     var merged = new LinkedHashMap<>(user);
     merged.putAll(membership);
     return new PlatformMember(
@@ -105,6 +111,7 @@ public final class QqMessageParser {
         str(membership, "nick"),
         strings(membership.get("roles")),
         instant(membership.get("joined_at")),
+        str(user, "member_nickname"),
         merged);
   }
 

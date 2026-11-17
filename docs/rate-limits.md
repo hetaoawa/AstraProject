@@ -1,10 +1,10 @@
 # 接口限速与配额
 
-本页按 2026-10-12 的源码、内置配置和配置示例整理。表中的数值是框架采用的规则；部署机器人的实际权限、后台额度和外部配置需要另行确认。
+本页按 2026-11-17 的源码、内置配置和配置示例整理。表中的数值是框架采用的规则；部署机器人的实际权限、后台额度和外部配置需要另行确认。
 
-`qq/rate-limits.tsv` 包含 93 个操作 ID：47 项设置固定接口频率，46 项没有固定 QPS 或 QPM。两项禁言操作共用同一 HTTP 路由，共有 92 个不同的方法和路径模板。各接口的官方文档链接见 [逐接口规则清单](#逐接口规则清单)，协议验证范围见 [QQ 协议接口覆盖](protocol-coverage.md)。
+`qq/rate-limits.tsv` 包含 98 个操作 ID：48 项设置固定接口频率，50 项没有固定 QPS 或 QPM。两项禁言操作共用同一 HTTP 路由，共有 97 个不同的方法和路径模板。各接口的官方文档链接见 [逐接口规则清单](#逐接口规则清单)，协议验证范围见 [QQ 协议接口覆盖](protocol-coverage.md)。
 
-`PlatformApi.call`、`raw`、`multipart` 和 `Messaging` 共用路由识别与限额服务，`raw` 调用已知路由时仍适用这些规则。凭证获取和预签名 COS 上传单独处理，不计入这 93 个操作 ID。
+`PlatformApi.call`、`raw`、`multipart` 和 `Messaging` 共用路由识别与限额服务，`raw` 调用已知路由时仍适用这些规则。凭证获取和预签名 COS 上传单独处理，不计入这 98 个操作 ID。
 
 ## 默认配置
 
@@ -31,13 +31,13 @@
 | --- | ---: | --- |
 | 100 次/秒 | 2 | 群聊发送、单聊发送 |
 | 50 次/秒 | 13 | 子频道删/查/改/创建及列表，频道详情，当前 机器人信息及频道列表，交互回执，分享链接，群/单聊媒体上传，单聊流式发送 |
-| 10 次/秒 | 6 | 群/单聊分片上传准备与完成，群/单聊撤回 |
+| 10 次/秒 | 7 | 用户基本信息查询，群/单聊分片上传准备与完成，群/单聊撤回 |
 | 60 次/分钟 | 11 | 入群审批，群黑名单添加，群成员列表，禁言设置，入群策略列表/创建/删除/修改/执行/白名单，指令面板目标设置 |
 | 30 次/分钟 | 10 | 批量移出群成员，群 bot 状态，群资料，入群申请列表，群黑名单查询，单个群成员资料，禁言设置查询，菜单查询，指令面板列表/详情 |
 | 10 次/分钟 | 3 | 指令面板创建/修改/删除 |
 | 5 次/分钟 | 1 | 菜单设置 |
 | 令牌桶补充 2 次/分钟、容量 10；另有 10 次/分钟窗口 | 1 | `GET /gateway` |
-| 未设置固定接口 QPS/QPM | 46 | 逐项列在末尾；仍可能适用消息额度、并发、冷却和配置预算 |
+| 未设置固定接口 QPS/QPM | 50 | 包含四项素材管理接口；仍可能适用消息额度、并发、冷却和配置预算 |
 
 固定频率使用滑动窗口，在同一 bot 环境内按 HTTP 方法和路径模板合计。不同群共享群发送接口的 100 次/秒，单聊发送单独计算。同一路由的操作别名也共享配置预算。每个请求需要满足全部适用规则。
 
@@ -47,6 +47,8 @@
 
 框架按请求正文判断主动或被动消息：非空 `msg_id` 或 `event_id` 表示被动请求，单聊 `is_wakeup=true` 优先按互动召回处理。
 
+`Messaging.send` 在群聊和单聊中会先尝试复用当前聊天的有效消息 ID，成功预留后按被动消息计数，不扣主动额度。ID 过期或次数用尽时才使用主动消息。`Messaging.reply` 始终使用指定的原消息，两种入口共享每个 ID 的回复次数。规则与失败处理见 [自动使用被动回复](messages.md#自动使用被动回复)。
+
 | 类别 | 限制 | 统计范围／条件 |
 | --- | --- | --- |
 | 未认证主动单聊 | 5 次/秒 且 30 次/分钟 | bot 环境内全部单聊合计 |
@@ -55,6 +57,7 @@
 | 主动群聊的单个群 | 20 次/分钟 **且** 1000 次/日 | bot 环境 + 群目标；与单聊预算分开 |
 | 单聊被动回复数量 | 4 次 | bot 环境 + 单聊目标 + `msg_id`；限额记录从首次获准尝试起保留 60 分钟 |
 | 群聊被动回复数量 | 5 次 | bot 环境 + 群目标 + `msg_id`；限额记录从首次获准尝试起保留 5 分钟 |
+| 群聊 @全体成员 | 1 次/日 | bot 环境 + 群目标；文本与 Markdown、主动与被动共享次数，权限由平台检查 |
 | `Messaging.reply` 单聊时效 | 原消息时间起 60 分钟 | 排队前及发送前检查；群聊和单聊均分配回复序号，分别最多 5/4 次 |
 | `Messaging.reply` 群聊／频道／频道私信时效 | 原消息时间起 5 分钟 | 频道及频道私信没有本地每条原消息的回复次数上限 |
 | 仅带 `event_id` 的被动请求 | 无本地每事件回复次数额度 | 仍受接口频率等限制；不进入主动额度分支 |
@@ -134,7 +137,7 @@ HTTP 429 或上述业务码会暂停当前 bot 环境中对应操作的后续调
 
 `operation: "*"` 包含 OpenAPI、未知通用调用和实际凭证获取，不包含预签名 COS PUT。COS 上传可单独设置 `operation: upload_part`。
 
-认证状态、HTTP 并发、时区、冷却、额外预算和出站队列容量可配置。47 项接口频率来自资源表，其他固定业务额度来自代码，当前没有逐项覆盖内置上限的 YAML 配置。
+认证状态、HTTP 并发、时区、冷却、额外预算和出站队列容量可配置。48 项接口频率来自资源表，其他固定业务额度来自代码，当前没有逐项覆盖内置上限的 YAML 配置。
 
 ## 执行、计数与恢复
 
@@ -142,7 +145,7 @@ HTTP 429 或上述业务码会暂停当前 bot 环境中对应操作的后续调
 
 获准发送前才将任务置为 `STARTED`。重启可继续尚未开始的任务，已开始但结果不明的任务不会重跑。
 
-每日计数、每日使用子频道集合、回复额度、短期窗口和冷却保存在 V4 数据表中，三种数据库采用相同接口。短期窗口有容量受限的内存读取缓存，数据库写入成功后才放行。重启不清零；WebSocket 会话预算在启动后根据网关响应重新初始化。
+每日计数、每日使用子频道集合、回复额度、短期窗口和冷却保存在 V4 数据表中，可复用 ID 和共享序号保存在 V5 数据表中，三种数据库采用相同接口。短期窗口有容量受限的内存读取缓存，数据库写入成功后才放行。重启不清零；WebSocket 会话预算在启动后根据网关响应重新初始化。
 
 本地每日额度默认按 `Asia/Shanghai` 午夜重置，可用 `day-zone` 修改。短期频率或并发不足时等待；每日额度或回复次数用尽时返回 `RateLimitException`，包含规则说明和 `retryAt`，不会自动等到次日发送。
 
@@ -269,3 +272,8 @@ HTTP 429 或上述业务码会暂停当前 bot 环境中对应操作的后续调
 | `channel_reactions.put` | `PUT /channels/{channel_id}/messages/{message_id}/reactions/{type}/{id}` | 未设固定频率 | — | [文档](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/trans/emoji.html) |
 | `channel_reactions.delete` | `DELETE /channels/{channel_id}/messages/{message_id}/reactions/{type}/{id}` | 未设固定频率 | — | [文档](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/trans/emoji.html) |
 | `channel_reactions.get` | `GET /channels/{channel_id}/messages/{message_id}/reactions/{type}/{id}` | 未设固定频率 | — | [文档](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/trans/emoji.html) |
+| `v2_media_images_prepare.post` | `POST /v2/media-images/prepare` | 未设固定频率 | — | [文档](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html) |
+| `v2_media_images_complete.post` | `POST /v2/media-images/complete` | 未设固定频率 | — | [文档](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html) |
+| `v2_media_images.get` | `GET /v2/media-images` | 未设固定频率 | — | [文档](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html) |
+| `v2_media_images_image_id_delete.delete` | `DELETE /v2/media-images/{image_id}/delete` | 未设固定频率 | — | [文档](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html) |
+| `v2_users_user_openid_info.get` | `GET /v2/users/{user_openid}/info` | 10 次/秒 | 同机器人环境的不同用户共享窗口，需好友关系 | [文档](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_info.get.html) |

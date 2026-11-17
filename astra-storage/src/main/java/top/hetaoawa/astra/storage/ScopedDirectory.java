@@ -15,6 +15,11 @@ public record ScopedDirectory(Directory delegate, String owner, BotId bot) imple
     return delegate.find(id);
   }
 
+  public Optional<Profile> find(Identity id, boolean forceRefresh) {
+    check(id.bot());
+    return delegate.find(id, forceRefresh);
+  }
+
   public Page<Profile> search(BotId b, EntityType t, String name, int offset, int limit) {
     check(b);
     return delegate.search(b, t, name, offset, limit);

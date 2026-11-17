@@ -20,6 +20,67 @@ public final class JdbcOutboundStore implements OutboundStore {
       throw new IllegalStateException("Runtime lease unavailable; request not started");
   }
 
+  public synchronized void rememberReply(
+      String chatKey, String messageId, long expiresAt, int maximum) {
+    if (messageId == null || messageId.isBlank() || maximum < 1)
+      throw new IllegalArgumentException("Message ID and positive reply limit required");
+    if (expiresAt <= System.currentTimeMillis()) return;
+    String key = top.hetaoawa.astra.api.Keys.join(chatKey, messageId);
+    db.transaction.executeWithoutResult(
+        tx -> {
+          var existing =
+              db.jdbc.query(
+                  "SELECT expires_at FROM astra_reply_contexts WHERE reply_key=?",
+                  (r, n) -> r.getLong(1),
+                  key);
+          if (existing.isEmpty())
+            db.jdbc.update(
+                "INSERT INTO"
+                    + " astra_reply_contexts(reply_key,chat_key,message_id,next_seq,maximum,expires_at)"
+                    + " VALUES(?,?,?,0,?,?)",
+                key,
+                chatKey,
+                messageId,
+                maximum,
+                expiresAt);
+          else if (existing.getFirst() > expiresAt)
+            db.jdbc.update(
+                "UPDATE astra_reply_contexts SET expires_at=? WHERE reply_key=?", expiresAt, key);
+        });
+  }
+
+  public synchronized Reply claimReply(String chatKey, String messageId, long now) {
+    requireLease();
+    return db.transaction.execute(
+        tx -> {
+          var candidates =
+              db.jdbc.query(
+                  "SELECT reply_key,message_id,next_seq,expires_at FROM astra_reply_contexts"
+                      + " WHERE chat_key=? AND expires_at>? AND next_seq<maximum"
+                      + (messageId == null ? "" : " AND reply_key=?")
+                      + " ORDER BY expires_at,reply_key LIMIT 1",
+                  (r, n) ->
+                      new Object[] {r.getString(1), r.getString(2), r.getInt(3), r.getLong(4)},
+                  messageId == null
+                      ? new Object[] {chatKey, now}
+                      : new Object[] {
+                        chatKey, now, top.hetaoawa.astra.api.Keys.join(chatKey, messageId)
+                      });
+          for (var row : candidates) {
+            int sequence = (Integer) row[2] + 1;
+            if (db.jdbc.update(
+                    "UPDATE astra_reply_contexts SET next_seq=? WHERE reply_key=? AND next_seq=?"
+                        + " AND expires_at>? AND next_seq<maximum",
+                    sequence,
+                    row[0],
+                    row[2],
+                    now)
+                == 1) return new Reply((String) row[1], sequence, (Long) row[3]);
+          }
+          return null;
+        });
+  }
+
   public void reserve(String id, String bot, String owner) {
     db.jdbc.update(
         "INSERT INTO astra_outbound(job_id,bot_key,plugin_id,state,result_json,created_at)"
@@ -110,6 +171,8 @@ public final class JdbcOutboundStore implements OutboundStore {
   }
 
   public void cleanup(long before) {
+    db.jdbc.update(
+        "DELETE FROM astra_reply_contexts WHERE expires_at<=?", System.currentTimeMillis());
     db.jdbc.update(
         "DELETE FROM astra_outbound WHERE created_at<? AND state<>'PENDING' AND state<>'STARTED'",
         before);

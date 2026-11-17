@@ -15,7 +15,8 @@ public record MessagePayload(
     Integer msgSeq,
     String image,
     Embed embed,
-    Ark ark)
+    Ark ark,
+    Card card)
     implements RequestPayload {
   public MessagePayload {
     if (msgId != null && eventId != null)
@@ -29,8 +30,91 @@ public record MessagePayload(
             || msgType == 7 && media == null
             || msgType == 1 && embed == null
             || msgType == 3 && ark == null
-            || !Set.of(0, 1, 2, 3, 7).contains(msgType)))
+            || msgType == 8 && card == null
+            || !Set.of(0, 1, 2, 3, 7, 8).contains(msgType)))
       throw new IllegalArgumentException("Message type and content mismatch");
+  }
+
+  public MessagePayload(
+      Integer msgType,
+      String content,
+      Markdown markdown,
+      Keyboard keyboard,
+      Media media,
+      Reference messageReference,
+      String msgId,
+      String eventId,
+      Integer msgSeq,
+      String image,
+      Embed embed,
+      Ark ark) {
+    this(
+        msgType,
+        content,
+        markdown,
+        keyboard,
+        media,
+        messageReference,
+        msgId,
+        eventId,
+        msgSeq,
+        image,
+        embed,
+        ark,
+        null);
+  }
+
+  /** Requires group administrator permission; the platform permits one use per group per day. */
+  public static final String AT_EVERYONE = "<qqbot-at-everyone />";
+
+  public static MessagePayload card(Card card) {
+    return new MessagePayload(
+        8,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        Objects.requireNonNull(card));
+  }
+
+  public record Card(String type, CardContent content) implements RequestPayload {
+    public Card {
+      if (!"tuwen".equals(type)) throw new IllegalArgumentException("Unsupported card type");
+      Objects.requireNonNull(content);
+    }
+
+    public static Card tuwen(String title, String description, String url, String picUrl) {
+      return new Card("tuwen", new CardContent(title, description, url, picUrl));
+    }
+  }
+
+  public record CardContent(String title, String description, String url, String picUrl)
+      implements RequestPayload {
+    public CardContent {
+      textLength(title, 50);
+      textLength(description, 200);
+      httpsUrl(url);
+      httpsUrl(picUrl);
+    }
+  }
+
+  private static void textLength(String text, int maximum) {
+    if (text == null || text.isBlank() || text.codePointCount(0, text.length()) > maximum)
+      throw new IllegalArgumentException("Card text length must be between 1 and " + maximum);
+  }
+
+  private static void httpsUrl(String value) {
+    textLength(value, 1024);
+    var uri = java.net.URI.create(value);
+    if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null)
+      throw new IllegalArgumentException("Card URL must use HTTPS");
   }
 
   public MessagePayload(
@@ -123,7 +207,7 @@ public record MessagePayload(
   public MessagePayload reference(Reference reference) {
     return new MessagePayload(
         msgType, content, markdown, keyboard, media, reference, msgId, eventId, msgSeq, image,
-        embed, ark);
+        embed, ark, card);
   }
 
   public record Embed(String title, String prompt, Thumbnail thumbnail, List<EmbedField> fields)

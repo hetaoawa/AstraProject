@@ -168,11 +168,19 @@ class StorageContractTest {
       String seq = UUID.randomUUID().toString();
       for (int i = 1; i <= 4; i++) assertEquals(i, out.nextReply(seq, 4));
       assertThrows(IllegalStateException.class, () -> out.nextReply(seq, 4));
+      long now = System.currentTimeMillis();
+      out.rememberReply(chat.key(), "pool-" + suffix, now + 300_000, 5);
+      for (int i = 1; i <= 5; i++) {
+        var reply = out.claimReply(chat.key(), null, now);
+        assertEquals("pool-" + suffix, reply.messageId());
+        assertEquals(i, reply.sequence());
+      }
+      assertNull(out.claimReply(chat.key(), null, now));
     }
     // Reopening must read the current version without executing migration DDL again.
     try (var reopened = new JdbcDatabase(dialect, url, username, password)) {
       assertEquals(
-          4,
+          5,
           reopened.jdbc.queryForObject("SELECT version FROM astra_schema_version", Integer.class));
     }
   }

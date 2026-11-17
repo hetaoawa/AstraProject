@@ -6,6 +6,7 @@ import top.hetaoawa.astra.api.*;
 import top.hetaoawa.astra.core.*;
 
 public final class JdbcDirectory implements Directory, ObservationStore {
+  private static final String DISSOLVED_SOURCE = "API:GROUP_DISSOLVED";
   private final JdbcDatabase db;
   private final Map<BotId, BotPolicy> policies = new HashMap<>();
 
@@ -25,6 +26,10 @@ public final class JdbcDirectory implements Directory, ObservationStore {
   }
 
   public Optional<Profile> find(Identity id) {
+    return stored(id).filter(p -> !DISSOLVED_SOURCE.equals(p.source()));
+  }
+
+  private Optional<Profile> stored(Identity id) {
     return db
         .jdbc
         .query("SELECT * FROM astra_profiles WHERE identity_key=?", (r, n) -> profile(r), id.key())
@@ -32,10 +37,54 @@ public final class JdbcDirectory implements Directory, ObservationStore {
         .findFirst();
   }
 
+  public boolean isGroupDissolved(Identity id) {
+    return id.type() == EntityType.GROUP
+        && stored(id).map(p -> DISSOLVED_SOURCE.equals(p.source())).orElse(false);
+  }
+
+  private boolean isGroupDissolved(ChatRef chat) {
+    return chat.scene() == Scene.GROUP
+        && isGroupDissolved(new Identity(chat.bot(), EntityType.GROUP, "group_openid", chat.id()));
+  }
+
+  /** Retains only a durable exclusion marker so late observations cannot recreate the group. */
+  public void dissolveGroup(Identity id) {
+    if (id.type() != EntityType.GROUP || !id.kind().equals("group_openid"))
+      throw new IllegalArgumentException("Expected group_openid group identity");
+    db.transaction.executeWithoutResult(
+        tx -> {
+          var old = stored(id);
+          long now = System.currentTimeMillis();
+          if (old.isEmpty())
+            db.jdbc.update(
+                "INSERT INTO astra_profiles(identity_key,bot_key,entity_type,identity_json,"
+                    + "fields_json,display_name,source,first_seen,last_seen,complete_flag)"
+                    + " VALUES(?,?,?,?,'{}','',?,?,?,0)",
+                id.key(),
+                id.bot().key(),
+                id.type().name(),
+                JsonSupport.write(id),
+                DISSOLVED_SOURCE,
+                now,
+                now);
+          else
+            db.jdbc.update(
+                "UPDATE astra_profiles SET fields_json='{}',display_name='',source=?,"
+                    + "last_seen=?,complete_flag=0 WHERE identity_key=?",
+                DISSOLVED_SOURCE,
+                Math.max(now, old.get().lastSeen().toEpochMilli()),
+                id.key());
+          db.jdbc.update(
+              "DELETE FROM astra_members WHERE chat_key=?",
+              new ChatRef(id.bot(), Scene.GROUP, id.value(), "").key());
+          db.jdbc.update("DELETE FROM astra_union_links WHERE identity_key=?", id.key());
+        });
+  }
+
   public Page<Profile> search(BotId bot, EntityType type, String name, int offset, int limit) {
     validatePage(offset, limit);
-    var args = new ArrayList<Object>(List.of(bot.key(), type.name()));
-    String sql = "SELECT * FROM astra_profiles WHERE bot_key=? AND entity_type=?";
+    var args = new ArrayList<Object>(List.of(bot.key(), type.name(), DISSOLVED_SOURCE));
+    String sql = "SELECT * FROM astra_profiles WHERE bot_key=? AND entity_type=? AND source<>?";
     if (name != null && !name.isBlank()) {
       sql += " AND display_name LIKE ? ESCAPE '#'";
       args.add(
@@ -54,6 +103,7 @@ public final class JdbcDirectory implements Directory, ObservationStore {
 
   public Page<Profile> members(ChatRef chat, int offset, int limit) {
     validatePage(offset, limit);
+    if (isGroupDissolved(chat)) return new Page<>(List.of(), offset, limit, false);
     return page(
         db.jdbc.query(
             "SELECT p.* FROM astra_profiles p JOIN astra_members m ON p.identity_key=m.member_key"
@@ -69,6 +119,7 @@ public final class JdbcDirectory implements Directory, ObservationStore {
 
   public Page<MemberRelation> relationships(ChatRef chat, boolean inactive, int offset, int limit) {
     validatePage(offset, limit);
+    if (isGroupDissolved(chat)) return new Page<>(List.of(), offset, limit, false);
     return page(
         db.jdbc.query(
             "SELECT * FROM astra_members WHERE chat_key=?"
@@ -92,6 +143,7 @@ public final class JdbcDirectory implements Directory, ObservationStore {
 
   public Page<Profile> related(Identity id, int offset, int limit) {
     validatePage(offset, limit);
+    if (isGroupDissolved(id)) return new Page<>(List.of(), offset, limit, false);
     var policy = policies.get(id.bot());
     if (policy == null
         || !policy.unionEnabled()
@@ -114,11 +166,12 @@ public final class JdbcDirectory implements Directory, ObservationStore {
             .query(
                 "SELECT p.* FROM astra_profiles p JOIN astra_union_links u ON"
                     + " p.identity_key=u.identity_key WHERE u.scope_name=? AND u.entity_type=? AND"
-                    + " u.union_id=? ORDER BY p.identity_key",
+                    + " u.union_id=? AND p.source<>? ORDER BY p.identity_key",
                 (r, n) -> profile(r),
                 policy.unionScope(),
                 id.type().name(),
-                union.getFirst())
+                union.getFirst(),
+                DISSOLVED_SOURCE)
             .stream()
             .filter(p -> allowed.contains(p.identity().bot().key()))
             .skip(offset)
@@ -168,10 +221,13 @@ public final class JdbcDirectory implements Directory, ObservationStore {
       boolean active) {
     db.transaction.executeWithoutResult(
         tx -> {
-          var old = find(id);
+          var old = stored(id);
+          if (old.map(p -> DISSOLVED_SOURCE.equals(p.source())).orElse(false)) return;
           Map<String, Object> merged =
               new LinkedHashMap<>(old.map(Profile::fields).orElse(Map.of()));
-          Set<String> relationshipFields = Set.of("nick", "roles", "member_role", "joined_at");
+          if (memberOf != null) merged.remove("member_nickname");
+          Set<String> relationshipFields =
+              Set.of("nick", "member_nickname", "roles", "member_role", "joined_at");
           fields.forEach(
               (k, v) -> {
                 if ((memberOf == null || !relationshipFields.contains(k))
@@ -209,13 +265,14 @@ public final class JdbcDirectory implements Directory, ObservationStore {
             db.jdbc.update(
                 "UPDATE astra_profiles SET"
                     + " fields_json=?,display_name=?,source=?,first_seen=?,last_seen=? WHERE"
-                    + " identity_key=?",
+                    + " identity_key=? AND source<>?",
                 JsonSupport.write(merged),
                 display,
                 source,
                 first,
                 last,
-                id.key());
+                id.key(),
+                DISSOLVED_SOURCE);
           var policy = policies.get(id.bot());
           if (policy != null
               && policy.unionEnabled()
@@ -240,7 +297,7 @@ public final class JdbcDirectory implements Directory, ObservationStore {
                   id.type().name(),
                   union);
           }
-          if (memberOf != null) {
+          if (memberOf != null && !isGroupDissolved(memberOf)) {
             String relation = Keys.join(memberOf.key(), id.key());
             var membership = new LinkedHashMap<String, Object>();
             db
@@ -299,8 +356,12 @@ public final class JdbcDirectory implements Directory, ObservationStore {
     var chat = e.chat();
     if (chat.scene() == Scene.GROUP) {
       Map<String, Object> fields = new LinkedHashMap<>();
-      if (raw.containsKey("group_name")) fields.put("name", raw.get("group_name"));
-      if (type.equals("GROUP_ADD_ROBOT")) fields.put("bot_present", true);
+      if (raw.containsKey("group_name")) {
+        fields.put("name", raw.get("group_name"));
+        fields.put("group_name", raw.get("group_name"));
+      }
+      if (e instanceof MessageEvent || type.equals("GROUP_ADD_ROBOT"))
+        fields.put("bot_present", true);
       if (type.equals("GROUP_DEL_ROBOT")) fields.put("bot_present", false);
       upsert(
           new Identity(e.bot(), EntityType.GROUP, "group_openid", chat.id()),
@@ -423,8 +484,15 @@ public final class JdbcDirectory implements Directory, ObservationStore {
     if (member == null || member.identity() == null) return;
     var fields = new LinkedHashMap<String, Object>();
     for (String key :
-        List.of("username", "avatar", "bot", "member_role", "nick", "roles", "joined_at"))
-      if (member.raw().get(key) != null) fields.put(key, member.raw().get(key));
+        List.of(
+            "username",
+            "avatar",
+            "bot",
+            "member_role",
+            "member_nickname",
+            "nick",
+            "roles",
+            "joined_at")) if (member.raw().get(key) != null) fields.put(key, member.raw().get(key));
     upsert(member.identity(), fields, source, time, member.unionOpenid(), chat, present);
   }
 

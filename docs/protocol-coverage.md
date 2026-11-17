@@ -2,7 +2,11 @@
 
 接口目录核对日期为 2026-10-09，事件模型和常用类型化请求核对日期为 2026-10-12。实现参考 QQ 官方 API-v2 文档，不依赖官方 SDK。
 
-目录包含 93 个操作 ID。频道全员禁言和批量禁言共用同一路径，按请求形式分别列出，因此对应 92 个不同的 HTTP 方法和路径模板。
+2026-11-16 对照 [官方变更记录](https://bot.q.qq.com/wiki/develop/api-v2/changelog.html) 补充图文卡片（`msg_type=8`）、群内 @全体成员与素材管理。已有的 `picture` 卡片类型、Markdown 图片转存校验、群管理、菜单和指令面板接口、统一域名及分享链接字段已检查。三种消息事件的附件、作者、场景、引用和递归元素均有本地样本检查。
+
+2026-11-17 根据官方 20261116 更新新增用户资料查询（10 QPS），移除批量踢人请求中已取消的拉黑参数，组合方法改用两个独立接口。补充群机器人和成员增减事件的统一标识，验证当前单聊、群消息和群 mentions 的字段，以及缺少消息元素作者时的读取。接口索引中的流式发送、分片完成和频道详情仅调整顺序，现有方法和路径保持一致。
+
+目录包含 98 个操作 ID。频道全员禁言和批量禁言共用同一路径，按请求形式分别列出，因此对应 97 个不同的 HTTP 方法和路径模板。
 
 ## 调用入口
 
@@ -22,6 +26,11 @@
 
 | 操作 ID | 方法和路径 | 请求／响应字段来源 | 验证样本 | 平台验证 |
 | --- | --- | --- | --- | --- |
+| `v2_users_user_openid_info.get` | `GET /v2/users/{user_openid}/info` | [用户基本信息](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_info.get.html) | 路由、鉴权、响应字段、缓存及 10 QPS | 未验证 |
+| `v2_media_images_prepare.post` | `POST /v2/media-images/prepare` | [素材管理](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html) | 请求与响应字段 | 未验证 |
+| `v2_media_images_complete.post` | `POST /v2/media-images/complete` | [素材管理](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html) | 请求与响应字段 | 未验证 |
+| `v2_media_images.get` | `GET /v2/media-images` | [素材管理](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html) | 列表与游标响应 | 未验证 |
+| `v2_media_images_image_id_delete.delete` | `DELETE /v2/media-images/{image_id}/delete` | [素材管理](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html) | 路由与响应结构 | 未验证 |
 | `channels_channel_id.delete` | `DELETE /channels/{channel_id}` | [删除子频道](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/channels_channel_id.delete.html) | 路由与响应结构 | 未验证 |
 | `channels_channel_id.get` | `GET /channels/{channel_id}` | [获取子频道详情](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/channels_channel_id.get.html) | 路由与响应结构 | 未验证 |
 | `channels_channel_id.patch` | `PATCH /channels/{channel_id}` | [修改子频道](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/channels_channel_id.patch.html) | 官方样本与路由 | 未验证 |

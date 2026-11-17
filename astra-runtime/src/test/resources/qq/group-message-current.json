@@ -1,0 +1,32 @@
+{
+  "op": 0,
+  "s": 2,
+  "t": "GROUP_MESSAGE_CREATE",
+  "id": "GROUP_MESSAGE_CREATE:sample-event",
+  "d": {
+    "author": {
+      "avatar": "https://example.com/avatar?key=sample&kti=sample&s=640",
+      "bot": false,
+      "id": "member-example",
+      "member_nickname": "群内名片",
+      "member_openid": "member-example",
+      "member_role": "owner",
+      "union_openid": "union-user-example",
+      "username": "账号昵称"
+    },
+    "content": "1",
+    "group_id": "group-example",
+    "group_openid": "group-example",
+    "id": "ROBOT1.0_sample-message!",
+    "message_scene": {
+      "ext": [
+        "msg_idx=REFIDX_sample/index==",
+        "auth_token=sample-token_=="
+      ],
+      "source": "default"
+    },
+    "message_type": 0,
+    "timestamp": "2026-11-16T18:20:37+08:00",
+    "union_group_openid": "union-group-example"
+  }
+}

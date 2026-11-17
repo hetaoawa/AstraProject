@@ -30,6 +30,7 @@ public final class AstraRuntime implements DisposableBean {
   private JdbcDatabase db;
   private JdbcRuntimeLease lease;
   private JdbcDirectory directory;
+  private GroupDirectory groupDirectory;
   private JdbcHistory history;
   private JdbcEventArchive archive;
   private JdbcLedger ledger;
@@ -130,6 +131,7 @@ public final class AstraRuntime implements DisposableBean {
         });
     var observer = new ApiObservations(directory, history);
     outbound = new OutboundQueue(queues.outbound(), outboundStore, apis, observer);
+    groupDirectory = new GroupDirectory(directory, outbound, List.copyOf(bots.keySet()));
     registry = new HandlerRegistry();
     sessions = new SessionManager();
     tasks = new TaskManager();
@@ -141,7 +143,7 @@ public final class AstraRuntime implements DisposableBean {
                 registry,
                 outbound,
                 outboundStore,
-                directory,
+                groupDirectory,
                 history,
                 sessions,
                 tasks,
@@ -171,8 +173,10 @@ public final class AstraRuntime implements DisposableBean {
               if (!lease.valid())
                 throw new IllegalStateException("Runtime database lease lost; restart required");
               directory.observe(event);
+              outbound.observe(event);
               apis.get(event.data().bot()).limits().observe(event);
               history.observe(event);
+              groupDirectory.observe(event);
             },
             sessions,
             contexts,
@@ -193,7 +197,19 @@ public final class AstraRuntime implements DisposableBean {
                     inbound.backend().equals("redis"),
                     packet -> capturePacket(id, "WEBSOCKET", packet)));
         });
-    maintenance = Executors.newSingleThreadScheduledExecutor();
+    maintenance = Executors.newScheduledThreadPool(2);
+    maintenance.scheduleWithFixedDelay(
+        () -> {
+          try {
+            if (lease.valid()) groupDirectory.refreshKnownGroups();
+          } catch (RuntimeException error) {
+            LOG.warn(
+                "Group information maintenance failed; will retry at the next interval", error);
+          }
+        },
+        1,
+        10,
+        TimeUnit.MINUTES);
     maintenance.scheduleWithFixedDelay(
         () -> {
           try {
@@ -228,7 +244,9 @@ public final class AstraRuntime implements DisposableBean {
   }
 
   public boolean receive(Event event) {
-    return !stopped.get() && lease != null && lease.valid() && pump != null && pump.accept(event);
+    if (stopped.get() || lease == null || !lease.valid() || pump == null) return false;
+    outbound.observe(event);
+    return pump.accept(event);
   }
 
   public Event normalize(BotId id, Map<String, Object> payload) {

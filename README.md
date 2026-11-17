@@ -1,6 +1,6 @@
 # Astra Framework
 
-Astra 当前版本为 **0.1.0，仍处于测试阶段**。框架、插件 API 和配置可能继续调整，插件应明确标注适配版本。
+Astra 当前版本为 **0.1.1，仍处于测试阶段**。框架、插件 API 和配置可能继续调整，插件应明确标注适配版本。
 
 Astra 是一个基于 Java 21 的 QQ 机器人框架。一个进程可以运行多个机器人，通过独立的插件 JAR 扩展功能，支持 Webhook 和 WebSocket 接入。
 
@@ -8,7 +8,7 @@ Astra 是一个基于 Java 21 的 QQ 机器人框架。一个进程可以运行�
 
 ## 快速开始
 
-普通用户从 [GitHub Releases](https://github.com/hetaoawa/AstraProject/releases) 下载 `astra-runtime-0.1.0.zip`，解压后执行 `start.ps1` 或 `sh start.sh`。首次执行会创建 `config/application.yml`；填写配置、设置 `QQ_APP_ID` / `QQ_BOT_SECRET`，将插件 JAR 放入 `plugins/` 后再次启动。运行只需要 Java 21，不需要 Git 或 Maven。示例插件位于 `examples/`，需要手动放入 `plugins/`。
+普通用户从 [GitHub Releases](https://github.com/hetaoawa/AstraProject/releases) 下载 `astra-runtime-0.1.1.zip`，解压后执行 `start.ps1` 或 `sh start.sh`。首次执行会创建 `config/application.yml`；填写配置、设置 `QQ_APP_ID` / `QQ_BOT_SECRET`，将插件 JAR 放入 `plugins/` 后再次启动。运行只需要 Java 21，不需要 Git 或 Maven。示例插件位于 `examples/`，需要手动放入 `plugins/`。
 
 发行配置默认使用 SQLite 并关闭 Redis。Webhook 的 HTTPS 回调或 WebSocket 权限仍需按 [配置与部署](docs/deployment.md) 准备。
 
@@ -16,7 +16,7 @@ Astra 是一个基于 Java 21 的 QQ 机器人框架。一个进程可以运行�
 
 两条开发路径共用插件模板和打包规则，均需要 Java 21 **JDK**。Maven Wrapper 会自动准备 Maven。
 
-- **独立插件仓库**：下载 [init.ps1](https://raw.githubusercontent.com/hetaoawa/AstraProject/main/scripts/init.ps1)，在空目录执行，按提示选择框架版本和插件信息。Linux/macOS 使用 [init.sh](https://raw.githubusercontent.com/hetaoawa/AstraProject/main/scripts/init.sh)。也可从指定版本 Release 下载脚本；测试版应明确选择 `0.1.0`。
+- **独立插件仓库**：下载 [init.ps1](https://raw.githubusercontent.com/hetaoawa/AstraProject/main/scripts/init.ps1)，在空目录执行，按提示选择框架版本和插件信息。Linux/macOS 使用 [init.sh](https://raw.githubusercontent.com/hetaoawa/AstraProject/main/scripts/init.sh)。也可从指定版本 Release 下载脚本；测试版应明确选择 `0.1.1`。
 - **框架源码仓库内**：拉取本仓库，执行 `./scripts/new-plugin.ps1` 或 `sh scripts/new-plugin.sh`，在 `plugins-src/` 中创建插件工程。
 
 进入生成的插件目录后，执行 `./scripts/plugin.ps1 package` 打包，执行 `./scripts/plugin.ps1 dev` 打包、安装并启动本地框架。Linux/macOS 使用 `sh scripts/plugin.sh package` / `dev`。发布文件位于 `dist/`。
@@ -35,11 +35,11 @@ Windows 构建脚本默认将依赖缓存、编译文件和测试输出放在项
 
 1. 将 [配置示例](config/application.example.yml) 复制为运行目录下的 `config/application.yml`。
 2. 设置 `QQ_APP_ID` 和 `QQ_BOT_SECRET` 环境变量，或按部署环境修改配置中的占位符。
-3. 将 `release/astra-example-plugin-0.1.0.jar` 复制到运行目录下的 `plugins/`。
+3. 将 `release/astra-example-plugin-0.1.1.jar` 复制到运行目录下的 `plugins/`。
 4. 在运行目录启动：
 
 ```powershell
-java -jar release/astra-runtime-0.1.0.jar
+java -jar release/astra-runtime-0.1.1.jar
 ```
 
 默认应用端口为 8080。Webhook 地址为 `https://你的域名/qq/webhook/{environment}/{appId}`，其中环境和 AppID 必须与配置一致。HTTPS 代理和 WebSocket 配置见 [接入 QQ](docs/deployment.md#接入-qq)。
@@ -68,7 +68,7 @@ java -jar release/astra-runtime-0.1.0.jar
 | --- | --- |
 | 配置机器人、部署服务、排查故障 | [配置与部署](docs/deployment.md) |
 | 开发插件、处理事件、等待回复、注册任务 | [插件开发](docs/plugins.md) |
-| 使用消息、历史、事件归档和 HTTP 扩展 | [功能索引](docs/features.md) |
+| 查看可用功能、使用入口和限制 | [功能使用与限制](docs/features.md) |
 | 查看接口频率、消息额度和等待规则 | [接口限速与配额](docs/rate-limits.md) |
 | 了解队列恢复、数据隔离和执行状态 | [架构与执行规则](docs/architecture.md) |
 | 查看 QQ 接口清单和已有验证范围 | [协议覆盖](docs/protocol-coverage.md)、[验收记录](docs/validation.md) |

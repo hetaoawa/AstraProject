@@ -1,8 +1,22 @@
 # 开发与发布
 
-当前版本为 `0.1.0`，仍在测试阶段。插件工程和框架源码均要求 Java 21 JDK；运行发行包只要求 Java 21 运行环境。
+当前版本为 `0.1.1`，仍在测试阶段。插件工程和框架源码均要求 Java 21 JDK；运行发行包只要求 Java 21 运行环境。
 
-新版插件 API 使用新的 Maven 坐标 `top.hetaoawa:astra-api:0.1.0`；`astra-framework` 是源码仓库的父工程，不向 Central 发布。旧版 `astra-qqbot` SDK 保留原有发布历史。
+新版插件 API 使用新的 Maven 坐标 `top.hetaoawa:astra-api:0.1.1`；`astra-framework` 是源码仓库的父工程，不向 Central 发布。旧版 `astra-qqbot` SDK 保留原有发布历史。
+
+## 框架版本与发布
+
+当前框架使用 `framework-v<版本号>` 标签，例如 `framework-v0.1.1`。旧框架的两个历史标签改为 `v1release-v0.1.0`、`v1release-v0.2.0`，仍指向各自原有提交，不与当前插件框架的版本混用。
+
+发布前同步根工程和各模块版本、模板版本、示例插件要求及文档示例，执行 `mvn verify -Papi-artifacts`，生成运行包、API JAR、独立 POM、源码包、Javadoc 与校验文件。按现有惯例使用带分类前缀的英文提交说明，并对提交和发行标签签名。标签工作流会准备测试版 Release 草稿。
+
+仅 `astra-api` 的 `central-release` profile 向 Maven Central 发布，父工程和宿主模块不发布。Central 凭据放在个人 Maven `settings.xml` 的 `central` server 中，不提交到仓库。使用已公开公钥对应的 GPG 密钥签名；有多个密钥时显式指定 `gpg.keyname`，避免选到其他默认签名密钥。
+
+```text
+mvn -pl astra-api -Pcentral-release -Dgpg.keyname=你的签名密钥 deploy
+```
+
+当前配置会上传并等待 Central 校验通过，随后在 Central Portal 发布同一 deployment；确认状态为 `PUBLISHED` 后，再公开对应 GitHub Release。Central 版本不能覆盖，失败后应先检查 deployment 状态，避免重复上传。Windows 构建输出与源码跨盘符时，可在同一盘符的独立源码副本执行签名发布，避免签名插件生成错误的相对路径。
 
 ## 插件开发路径一：在框架仓库中开发
 
@@ -29,11 +43,11 @@ Linux/macOS 使用 `sh scripts/new-plugin.sh`。填写插件 ID、名称、Maven
 从对应框架版本的 GitHub Release 下载 `init.ps1` 或 `init.sh`，放在空目录（允许已存在 `.git`）并执行：
 
 ```powershell
-./init.ps1 -Version 0.1.0
+./init.ps1 -Version 0.1.1
 ```
 
 ```sh
-sh init.sh --version 0.1.0
+sh init.sh --version 0.1.1
 ```
 
 脚本将询问插件信息，并从同一 Release 获取 `astra-release.properties`，按清单下载模板并校验 SHA-256，再下载固定版本的运行包。此时不会拉取框架源码。运行脚本时若省略版本号会要求交互选择版本；回车将默认选择最新稳定 Release，如需使用未发布的测试版，需明确指定版本号。

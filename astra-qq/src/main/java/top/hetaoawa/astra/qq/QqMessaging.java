@@ -26,6 +26,16 @@ public final class QqMessaging implements Messaging {
         throw new IllegalArgumentException(
             "Use reply(source, body) for passive replies, or raw API with an explicit validity"
                 + " deadline policy");
+      if ((chat.scene() == Scene.GROUP || chat.scene() == Scene.C2C)
+          && !Boolean.parseBoolean(String.valueOf(body.get("is_wakeup")))) {
+        var reply = store.claimReply(chat.key(), null, System.currentTimeMillis());
+        if (reply != null) {
+          var request = new LinkedHashMap<String, Object>(body);
+          request.put("msg_id", reply.messageId());
+          request.put("msg_seq", reply.sequence());
+          return enqueue(chat, request, reply.expiresAt(), "POST", null);
+        }
+      }
       return enqueue(chat, body, 0, "POST", null);
     } catch (Throwable e) {
       return CompletableFuture.failedFuture(e);
@@ -38,17 +48,22 @@ public final class QqMessaging implements Messaging {
       Scene scene = source.chat().scene();
       long seconds = scene == Scene.C2C ? 3600 : 300;
       long deadline = source.data().occurredAt().plusSeconds(seconds).toEpochMilli();
-      if (System.currentTimeMillis() > deadline)
+      if (System.currentTimeMillis() >= deadline)
         throw new PlatformException("Passive reply expired", 0, "REPLY_EXPIRED", "", true, null);
       Map<String, Object> request = new LinkedHashMap<>(body);
       request.put("msg_id", source.message().id());
       request.remove("event_id");
       if (scene == Scene.GROUP || scene == Scene.C2C) {
-        int seq =
-            store.nextReply(
-                Keys.join(source.chat().key(), source.message().id(), source.message().index()),
-                scene == Scene.C2C ? 4 : 5);
-        request.put("msg_seq", seq);
+        queue.observe(source);
+        var reply =
+            store.claimReply(
+                source.chat().key(), source.message().id(), System.currentTimeMillis());
+        if (reply == null)
+          throw new PlatformException(
+              "Passive reply expired or exhausted", 0, "REPLY_UNAVAILABLE", "", true, null);
+        request.put("msg_seq", reply.sequence());
+        request.remove("is_wakeup");
+        deadline = reply.expiresAt();
       } else request.remove("msg_type");
       return enqueue(source.chat(), request, deadline, "POST", null);
     } catch (Throwable e) {

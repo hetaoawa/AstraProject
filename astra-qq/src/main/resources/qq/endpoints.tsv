@@ -91,3 +91,8 @@ gateway_bot.get	GET	/gateway/bot	获取带分片 WSS 接入点	https://bot.q.qq.
 channel_reactions.put	PUT	/channels/{channel_id}/messages/{message_id}/reactions/{type}/{id}	频道表情表态	https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/trans/emoji.html
 channel_reactions.delete	DELETE	/channels/{channel_id}/messages/{message_id}/reactions/{type}/{id}	频道表情表态	https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/trans/emoji.html
 channel_reactions.get	GET	/channels/{channel_id}/messages/{message_id}/reactions/{type}/{id}	频道表情表态	https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/trans/emoji.html
+v2_media_images_prepare.post	POST	/v2/media-images/prepare	申请素材图片上传	https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html
+v2_media_images_complete.post	POST	/v2/media-images/complete	完成素材图片上传	https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html
+v2_media_images.get	GET	/v2/media-images	查询有效素材图片	https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html
+v2_media_images_image_id_delete.delete	DELETE	/v2/media-images/{image_id}/delete	删除素材图片	https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/material-management.html
+v2_users_user_openid_info.get	GET	/v2/users/{user_openid}/info	获取用户基本信息	https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_info.get.html

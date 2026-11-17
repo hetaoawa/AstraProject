@@ -35,7 +35,41 @@ public record MessageContent(
       Long seq,
       String seqInChannel,
       String srcGuildId,
-      Map<String, Object> raw) {}
+      String unionGroupOpenid,
+      Map<String, Object> raw) {
+    public Metadata {
+      if (unionGroupOpenid == null
+          && raw != null
+          && raw.get("union_group_openid") instanceof String value) unionGroupOpenid = value;
+    }
+
+    public Metadata(
+        String groupId,
+        String groupOpenid,
+        String guildId,
+        String channelId,
+        java.time.Instant timestamp,
+        java.time.Instant editedTimestamp,
+        Boolean mentionEveryone,
+        Long seq,
+        String seqInChannel,
+        String srcGuildId,
+        Map<String, Object> raw) {
+      this(
+          groupId,
+          groupOpenid,
+          guildId,
+          channelId,
+          timestamp,
+          editedTimestamp,
+          mentionEveryone,
+          seq,
+          seqInChannel,
+          srcGuildId,
+          raw != null && raw.get("union_group_openid") instanceof String value ? value : null,
+          raw);
+    }
+  }
 
   public record Embed(
       String title,
@@ -64,14 +98,67 @@ public record MessageContent(
       String arkType,
       String arkName,
       Map<String, Object> fields,
-      Map<String, Object> raw) {}
+      Map<String, Object> raw) {
+    public String title() {
+      return field("title");
+    }
+
+    public String description() {
+      return field("desc");
+    }
+
+    public String jumpUrl() {
+      return field("jump_url");
+    }
+
+    public String preview() {
+      return field("preview");
+    }
+
+    public String source() {
+      return field("source");
+    }
+
+    public String sourceLogo() {
+      return field("source_logo");
+    }
+
+    public String nickname() {
+      return field("nickname");
+    }
+
+    public String avatar() {
+      return field("avatar");
+    }
+
+    public String address() {
+      return field("address");
+    }
+
+    private String field(String key) {
+      return fields.get(key) instanceof String value ? value : null;
+    }
+  }
 
   public record SceneContext(
       String source,
       List<String> ext,
       MessageIndex messageIndex,
       MessageIndex referenceIndex,
-      String authToken) {}
+      String authToken) {
+    /**
+     * Preserves values containing '=' and exposes future scene extensions without a model update.
+     */
+    public Map<String, String> extensions() {
+      var result = new java.util.LinkedHashMap<String, String>();
+      for (String entry : ext) {
+        int separator = entry.indexOf('=');
+        if (separator > 0)
+          result.putIfAbsent(entry.substring(0, separator), entry.substring(separator + 1));
+      }
+      return java.util.Collections.unmodifiableMap(result);
+    }
+  }
 
   public record Parallel(List<Element> msgNodes, Map<String, Object> raw) {
     public Parallel {

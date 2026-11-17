@@ -55,7 +55,7 @@ public final class HelloPlugin implements AstraPlugin {
 | `services()` | 类型化服务的注册与查询，以及点分权限节点注册 |
 | `configuration()` | `astra.plugins.configuration` 下对应插件 ID 的配置 |
 
-具体用法见 [功能索引](features.md)。
+各项能力的用法、默认开关和限制见 [功能使用与限制](features.md)。
 
 ## 平台接口
 
@@ -71,6 +71,25 @@ return context.api().call(
 `astra-qq` 中的 `QqEndpoints` 提供操作 ID 常量。只依赖 `astra-api` 的插件可通过 `operations()` 查看目录，再使用字符串 ID。请求和响应 Map 保留平台字段及未识别的扩展字段，数组响应包装在 `items` 中。常用请求还可使用 `MessagePayload`、`Moderation` 和 `api().moderation()`，见 [消息与平台请求](messages.md#常用请求)。
 
 接口能否使用取决于机器人的平台权限。`PlatformException` 保留平台错误码，查询失败会报告错误。成功查询会补充本地资料，但本地成员记录可能不完整。
+
+### 群资料与刷新
+
+首次收到某个群的消息时，框架会先调用群基本信息接口，将返回资料写入本地，再交给插件处理。每次成功获取后缓存 6 小时；到期后由新消息或后台巡检触发刷新，巡检每 10 分钟运行一次。刷新时间单独保存，持续收到消息不会延长资料的有效期，重启也会保留成功刷新时间。已收到退群通知的群不参与后台刷新。
+
+群名称同时保存在 `Profile.fields()` 的 `name` 和 `group_name` 中，其他平台字段原样保留。普通 `find(identity)` 或 `find(identity, false)` 只读本地资料；需要立即获取最新资料时，使用 `find(identity, true)`：
+
+```java
+var group = new Identity(context.bot(), EntityType.GROUP, "group_openid", event.chat().id());
+var cached = context.directory().find(group);
+var latest = context.directory().find(group, true);
+String name = latest.map(p -> (String) p.fields().get("name")).orElse("");
+```
+
+强制刷新目前仅支持 `group_openid` 群身份，会等待平台响应，更新本地资料后返回；平台失败时抛出异常，不把旧资料作为刷新成功的结果。同一群的并发刷新共用正在进行的请求，不同机器人和环境分别处理。所有刷新请求均经过框架出站队列与限速。
+
+自动刷新失败时保留旧资料并继续分发消息，5 分钟内不再自动重试该群；强制刷新不受此间隔限制。接口权限不足时，群名称仍可能缺失。这一接口获取的是群名称，不是成员在群内的昵称。
+
+群接口返回已解散群的错误（`code: 11255`、`err_code: 40011028`）时，框架按 `err_code` 识别，将该群从资料查找、分页搜索、union 关联、成员和关系查询中排除，并停止自动刷新。此时 `find(identity, true)` 返回空结果。数据库只保留持久失效标记，清除群资料、成员关系和 union 关联，重启或迟到事件不会恢复该群。已有消息历史、事件归档和插件 metadata 保留。
 
 分片上传依次调用 `upload_prepare`、`uploadPart`、`upload_part_finish`。框架不根据平台 `upload_config` 自动重试分片。队列请求最大为 16 MiB，包含 Base64 编码开销，大文件应分片上传。
 
@@ -118,7 +137,7 @@ JAR Manifest 必须包含：
 Plugin-Id: my-plugin
 Plugin-Version: 0.1.0
 Plugin-Class: top.hetaoawa.astra.runtime.AstraPluginManager$BridgePlugin
-Plugin-Requires: 0.1.0
+Plugin-Requires: 0.1.1
 Astra-Entrypoint: example.MyPlugin
 Astra-Api-Version: 1
 ```

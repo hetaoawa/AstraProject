@@ -19,7 +19,7 @@ command -v curl >/dev/null || { echo 'curl is required.' >&2; exit 1; }
 case "$repository" in *[!A-Za-z0-9_./-]*|*/*/*|/*|*/) echo 'Invalid repository.' >&2; exit 1;; esac
 case "$repository" in */*) ;; *) echo 'Expected owner/repository.' >&2; exit 1;; esac
 if [ -z "$version" ]; then
-    printf 'Framework version (for example 0.1.0; Enter = latest stable release): '
+    printf 'Framework version (for example 0.1.1; Enter = latest stable release): '
     read -r version || version=
     version=${version:-latest}
 fi

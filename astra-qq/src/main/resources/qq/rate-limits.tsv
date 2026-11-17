@@ -92,3 +92,8 @@ gateway_bot.get	0	0	0	UNPUBLISHED
 channel_reactions.put	0	0	0	UNPUBLISHED
 channel_reactions.delete	0	0	0	UNPUBLISHED
 channel_reactions.get	0	0	0	UNPUBLISHED
+v2_media_images_prepare.post	0	0	0	UNPUBLISHED
+v2_media_images_complete.post	0	0	0	UNPUBLISHED
+v2_media_images.get	0	0	0	UNPUBLISHED
+v2_media_images_image_id_delete.delete	0	0	0	UNPUBLISHED
+v2_users_user_openid_info.get	10	1000	0	接口频率限制 10 QPS

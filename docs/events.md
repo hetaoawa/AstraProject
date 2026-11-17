@@ -27,6 +27,21 @@
 
 通知类别在 `NoticeEvent.details()` 中有对应类型，事件经过队列保存和恢复后仍保留这些类型。字段依据 [官方事件订阅表](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/event-emit.html) 及对应模型文档整理。开放论坛正文保留平台提供的字符串。
 
+## 当前消息用户与群统一标识
+
+按平台 2026-11-16 更新，单聊发送者包含昵称、头像和 `user_openid`；群发送者包含头像、`member_openid`、`member_role`、`member_nickname`。群消息 `mentions` 还提供 `is_you`、`scope`（`all` 或 `single`）与群名片，均通过现有 `PlatformMember` 对应方法读取。各场景缺失字段保持为空，不根据其他标识推断。旧版 `union_user_account` 和消息元素 `author` 仍兼容读取，但当前文档不再承诺这些字段会下发。
+
+群统一标识的读取入口：
+
+| 来源 | 读取方式 |
+| --- | --- |
+| 群全量、群 AT 消息 | `event.message().content().metadata().unionGroupOpenid()` |
+| 机器人加入、退出群聊 | 将 `event.details()` 作为 `NoticePayload.GroupBotState` 读取 `unionGroupOpenid()` |
+| 群成员加入、退出 | `event.memberChange().unionGroupOpenid()` |
+| 获取群基本信息 | 成功响应的 `union_group_openid`；运行时继续用于本地群资料关联 |
+
+新增字段在队列保存和恢复后保留；旧记录仅在 `raw` 中有字段时也可恢复类型化值。字段在绑定第三方应用后才有效，跨机器人关联仍受 `union-enabled`、`union-scope` 和实际非空值约束，不能用它直接发送消息。详情见 [官方更新记录](https://bot.q.qq.com/wiki/develop/api-v2/changelog.html)。
+
 ## 开启报文归档
 
 ```yaml
